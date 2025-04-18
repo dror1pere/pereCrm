@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>טופס פתיחת לקוח חדש</title>
+<style>
+  /* 🎨 סגנון בסיסי לגוף הדף */
+body {
+  font-family: Arial, sans-serif;
+  direction: rtl;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* ✅ שינוי מ-center ל-flex-start כדי להבטיח שהטופס תמיד מתחיל מהחלק העליון */
+  min-height: 100vh;
+  padding-top: 30px; /* ✅ מוסיף ריווח עליון לטופס */
+  margin: 0;
+}
+
+/* 📝 מיכל הטופס */
+.form-container {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+  width: 600px;
+  text-align: right;
+  position: relative;
+}
+
+/* 🏗️ קבוצות שדות */
+.form-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+/* 🏷️ תגיות ושדות קלט */
+label {
+  font-weight: bold;
+  width: 30%;
+}
+
+/* 🧾 שדות קלט רגילים וסלקט */
+input, select {
+  width: 65%;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  box-sizing: border-box;
+}
+
+/* 🔒 שדות לקריאה בלבד */
+input[readonly] {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
+}
+
+/* ⛔️ שדה סיסמה מוסתר */
+input[type="password"] {
+  position: absolute;
+  left: -9999px;
+}
+
+/* 🔔 חיווי שגיאה */
+#warningMessage {
+  color: red;
+  display: none;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* 🔽 9️⃣ כפתור גלילה לסוף הטופס */
+.scroll-button {
+    background-color: #2196F3;
+    color: white;
+    font-size: 14px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: auto;
+    margin: 10px auto;
+}
+
+/* 🧭 ממורכז */
+.center-button {
+    display: flex;
+    justify-content: center;
+}
+
+
+/* ✅ עיצוב כפתורים */
+button {
+  margin-top: 15px;
+  padding: 10px;
+  font-size: 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 48%;
+}
+
+/* כפתור אישור */
+#submitButton {
+  background-color: #4CAF50;
+  color: white;
+}
+
+#submitButton:disabled {
+  background-color: #cccccc;
+}
+
+/* כפתור ביטול */
+#cancelButton {
+  background-color: #f44336;
+  color: white;
+}
+
+/* 🎛️ קבוצת כפתורים */
+.button-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* 🔄 הודעת טעינה עליונה */
+#loadingMessage {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(255, 255, 0, 0.85);
+  color: black;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 10px;
+  z-index: 1000;
+  display: none;
+}
+
+/* 🔄 קופסת טעינה במרכז */
+.loading-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  font-weight: bold;
+  color: blue;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 🎡 אנימציית ספינר */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 🎡 ספינר טוען */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid black;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 10px;
+}
+
+</style>
+
+      <script>
+  
+  // משתנה שיחזיק את רשימת הלקוחות הקיימים
+  let existingCustomers = [];
+
+document.addEventListener("DOMContentLoaded", function () {
+    try {
+        console.log("📌 טעינת הטופס - מתחילים בתהליך.");
+
+        // ✅ השבתת כל הטופס עד סיום טעינת הנתונים
+        disableForm();
+        
+
+        // ✅ שליחת בקשה לשרת לקבלת נתונים ראשוניים
+        google.script.run.withSuccessHandler(handleFormData).processCustomerForm();
+
+        console.log("📌 התחלת טעינת מאזינים לשדות הטופס");
+
+        let requiredFields = ["customerName", "taxID", "address", "email", "contactName", "contactPhone", "contactEmail", "projectName"];
+        let submitButton = document.getElementById("submitButton");
+
+        if (!submitButton) {
+            console.error("❌ כפתור האישור לא נמצא ב-DOM");
+            return;
+        }
+
+        requiredFields.forEach((fieldID, index) => {
+            let field = document.getElementById(fieldID);
+            if (!field) {
+                console.error(`⚠️ שדה לא נמצא: ${fieldID}`);
+                return;
+            }
+
+            if (fieldID === "customerName") {
+                // בדיקה תוך כדי הקלדה אם הלקוח קיים
+                field.addEventListener("input", checkCustomerExists);
+                console.log("✅ מאזין 'input' נוסף לשדה שם לקוח לבדיקה בזמן אמת");
+            } else if (index === requiredFields.length - 1) {
+                // השדה האחרון: הבדיקה תתרחש תוך כדי הקלדה
+                field.addEventListener("input", function () {
+                    validateForm(true); // קריאה עם פרמטר שמודיע שזה השדה האחרון
+                });
+                console.log(`✅ מאזין 'input' נוסף לשדה האחרון: ${fieldID}`);
+            } else {
+                // כל השדות האחרים: בדיקה רק לאחר יציאה (blur)
+                field.addEventListener("blur", validateForm);
+                console.log(`✅ מאזין 'blur' נוסף לשדה: ${fieldID}`);
+            }
+        });
+        document.querySelectorAll("input, select").forEach(input => {
+        input.addEventListener("input", validateForm);
+        });
+
+    } catch (error) {
+        console.error("❌ שגיאה קריטית בהגדרת מאזינים לשדות הטופס:", error);
+    }
+});
+
+/**
+ * 🎯 מטפלת בטעינת נתוני פתיחת טופס לקוח חדש עם כל הערכים הנדרשים מהשרת.
+ * 
+ * 📌 שלבי הפעולה:
+ * 1️⃣ בדיקת תקינות הנתונים שהתקבלו מהשרת.
+ * 2️⃣ מילוי שדות מערכתיים (תאריכים, מזהים, שם פרויקט).
+ * 3️⃣ טעינת רשימת לקוחות קיימים.
+ * 4️⃣ טעינת רשימת מקבלי עמלה לרשימת בחירה + עדכון שדות נלווים.
+ * 5️⃣ הצגת הודעת שגיאה במקרה של חוסר נתונים.
+ * 6️⃣ הפעלת הטופס לשימוש אם הכל תקין.
+ * 
+ * @param {Object} data - הנתונים שהתקבלו מהשרת.
+ * @property {Object} data.generatedFields - נתונים מחושבים מראש (מזהים, תאריכים).
+ * @property {string[]} data.existingCustomers - רשימת שמות לקוחות קיימים.
+ * @property {Array<{name: string, rate: number, months: number}>} data.commissionRecipients - רשימת מקבלי עמלה.
+ */
+function handleFormData(data) {
+    try {
+        console.log("📡 קבלת נתונים מהשרת:", data);
+
+        // 🔍 שלב 1: בדיקת תקינות הנתונים
+        if (!data || !data.generatedFields) {
+            console.error("❌ שגיאה: הנתונים שהתקבלו מהשרת ריקים או לא תקינים.");
+            document.getElementById("loadingMessage").innerText = "❌ שגיאה בטעינת הנתונים";
+            return;
+        }
+
+        // 🧩 שלב 2: מילוי שדות מערכתיים
+        const creationDate = data.generatedFields.creationDate || "";
+        const customerID = data.generatedFields.customerID || "";
+        const entryDate = data.generatedFields.entryDate || "";
+        const projectID = data.generatedFields.projectID || "";
+        const projectName = `שיווק ${creationDate}`;
+
+        document.getElementById("creationDate").value = creationDate;
+        document.getElementById("customerID").value = customerID;
+        document.getElementById("entryDate").value = entryDate;
+        document.getElementById("projectID").value = projectID;
+        document.getElementById("projectName").value = projectName;
+        console.log("🧾 שדות מערכתיים מולאו בהצלחה.");
+
+        // 👥 שלב 3: טעינת רשימת לקוחות קיימים
+        if (data.existingCustomers) {
+            existingCustomers = data.existingCustomers;
+            console.log("✅ רשימת הלקוחות הקיימים נטענה:", existingCustomers);
+        }
+
+        // 💼 שלב 4: טעינת מקבלי העמלה והגדרת שדות נלווים
+        if (Array.isArray(data.commissionRecipients)) {
+            const select = document.getElementById("commissionRecipient");
+            const rateField = document.getElementById("commissionRate");
+            const monthsField = document.getElementById("commissionMonths");
+
+            if (select && rateField && monthsField) {
+                // איפוס הרשימה והוספת ברירת מחדל
+                select.innerHTML = "";
+                const defaultOption = document.createElement("option");
+                defaultOption.value = "";
+                defaultOption.textContent = "-- ללא מקבל עמלה --";
+                select.appendChild(defaultOption);
+
+                // הוספת כל מקבלי העמלה לרשימה
+                data.commissionRecipients.forEach(recipient => {
+                    const option = document.createElement("option");
+                    option.value = recipient.name;
+                    option.textContent = recipient.name;
+                    select.appendChild(option);
+                });
+
+                // האזנה לבחירה ועדכון שדות נלווים
+                select.addEventListener("change", () => {
+                    const selected = select.value;
+                    const found = data.commissionRecipients.find(r => r.name === selected);
+                    rateField.value = found ? found.rate : "";
+                    monthsField.value = found ? found.months : "";
+                    console.log(`📌 מקבל עמלה נבחר: ${selected} | אחוז: ${rateField.value} | חודשים: ${monthsField.value}`);
+                });
+
+                console.log("✅ מקבלי עמלה נטענו והוזנו לרשימה.");
+            } else {
+                console.warn("⚠️ אלמנטים commissionRecipient / commissionRate / commissionMonths לא נמצאו ב-DOM.");
+            }
+        } else {
+            console.warn("⚠️ לא התקבלה רשימת מקבלי עמלה מהשרת.");
+        }
+
+        // ✅ שלב 5: בדיקה סופית שכל הנתונים קיימים לפני הפעלת הטופס
+        const allGood = creationDate && customerID && entryDate && projectID && projectName && existingCustomers.length >= 0;
+        if (allGood) {
+            console.log("✅ כל הנתונים נטענו בהצלחה - מאפשרים שימוש בטופס.");
+            enableForm();
+        } else {
+            console.error("❌ נתונים קריטיים חסרים - השימוש בטופס לא יתאפשר.");
+            document.getElementById("loadingMessage").innerText = "❌ שגיאה בטעינת הנתונים. נסה לרענן.";
+        }
+
+    } catch (error) {
+        // 🧯 טיפול בשגיאות כלליות
+        console.error("❌ שגיאה בלתי צפויה ב-handleFormData:", error);
+        document.getElementById("loadingMessage").innerText = "❌ שגיאה כללית. נסה לרענן.";
+    }
+}
+
+
+/**
+ * 🚀 disableForm - משבית את כל השדות בטופס עד קבלת נתונים מהשרת.
+ * ✅ מונע ממשתמשים למלא נתונים לפני שהשרת החזיר תשובות.
+ */
+function disableForm() {
+    try {
+        console.log("⏳ השבתת הטופס - מחכים לנתונים מהשרת...");
+        document.getElementById("loadingMessage").style.display = "block";
+        document.querySelectorAll("input, button, select").forEach(el => el.disabled = true);
+        document.getElementById("submitButton").disabled = true;
+    } catch (error) {
+        console.error("❌ שגיאה בהשבתת הטופס:", error);
+    }
+}
+
+/**
+ * 🚀 enableForm - משחרר את הטופס לאחר קבלת נתונים מהשרת.
+ * ✅ מאפשר למשתמשים להתחיל למלא נתונים לאחר שהכל מוכן.
+ */
+function enableForm() {
+    try {
+        console.log("✅ שחרור הטופס - הנתונים נטענו בהצלחה!");
+        document.getElementById("loadingMessage").style.display = "none";
+        document.querySelectorAll("input, button, select").forEach(el => el.disabled = false);
+        validateForm()
+        // ✅ ווידוא שהמשתמש רואה את הטופס ומיקוד בשדה הראשון
+        let firstInput = document.getElementById("customerName");
+        if (firstInput) {
+            firstInput.focus();
+            console.log("📌 הפוקוס הועבר לשדה 'שם לקוח'.");
+        }
+    } catch (error) {
+        console.error("❌ שגיאה בשחרור הטופס:", error);
+    }
+}
+
+/**
+ * 🚀 פונקציה לבדיקה אם שם הלקוח כבר קיים
+ * 
+ * 📌 תהליך העבודה:
+ * 1️⃣ בודקת אם השדה ריק → מונעת יציאה, מציגה שגיאה, ומחזירה פוקוס.
+ * 2️⃣ אם השם כבר קיים ברשימת הלקוחות → מציגה חיווי ומונעת המשך.
+ * 3️⃣ אם השם **תקין וייחודי** → מסתירה את החיווי ומאפשרת המשך מילוי טופס.
+ * 4️⃣ **לא מעדכנת נתונים** – רק מבצעת בדיקה.
+ */
+function checkCustomerExists() {
+    try {
+        let customerNameField = document.getElementById("customerName");
+        let customerName = customerNameField.value.trim();
+        let warningMessage = document.getElementById("warningMessage");
+        let submitButton = document.getElementById("submitButton");
+
+        if (!customerNameField || !warningMessage || !submitButton) {
+            console.error("❌ האלמנטים הנדרשים לא נמצאו.");
+            return;
+        }
+
+        // 🔹 1️⃣ בדיקה אם השדה ריק
+        if (customerName === "") {
+            console.warn("⚠️ השדה 'שם לקוח' ריק - לא מאפשר יציאה.");
+            warningMessage.innerText = "⚠️ יש להזין שם לקוח!";
+            warningMessage.style.display = "block";
+            customerNameField.focus(); // ❌ מחזיר את הפוקוס לשדה
+            return;
+        }
+
+        // 🔹 2️⃣ בדיקה אם הלקוח כבר קיים
+        if (existingCustomers.includes(customerName)) {
+            console.warn(`⚠️ הלקוח '${customerName}' כבר קיים - כפתור השליחה מושבת.`);
+            warningMessage.innerText = `⚠️ הלקוח '${customerName}' כבר קיים במערכת!`;
+            warningMessage.style.display = "block";
+            submitButton.disabled = true; // ❌ מונע שליחה
+        } else {
+            console.log(`✅ שם הלקוח '${customerName}' תקין.`);
+            warningMessage.style.display = "none"; // ✅ הסרת הודעת השגיאה
+            submitButton.disabled = false; // ✅ מאפשר שליחה
+        }
+
+    } catch (error) {
+        console.error("❌ שגיאה בבדיקת שם לקוח:", error);
+    }
+}
+
+/**
+ * 🔽 scrollToSubmit - מגלגל את המסך בצורה חלקה אל כפתורי השליחה בתחתית הטופס
+ * 
+ * 📌 תהליך העבודה:
+ * 1️⃣ מאתר את כפתור השליחה לפי מזהה.
+ * 2️⃣ אם הכפתור קיים – מפעיל scroll חלק כדי להביא אותו למרכז המסך.
+ * 3️⃣ רושם לוג לאימות הצלחה.
+ * 4️⃣ אם לא נמצא הכפתור – רושם שגיאה.
+ */
+function scrollToSubmit() {
+    try {
+        const submitButton = document.getElementById("submitButton");
+
+        if (!submitButton) {
+            console.error("❌ כפתור השליחה לא נמצא בדף.");
+            return;
+        }
+
+        submitButton.scrollIntoView({
+            behavior: "smooth", // גלילה חלקה
+            block: "center"     // ממוקד במרכז המסך
+        });
+
+        console.log("📍 בוצעה גלילה אל כפתורי הטופס.");
+
+    } catch (error) {
+        console.error("❌ שגיאה בגלילה אל כפתור השליחה:", error);
+    }
+}
+
+
+/**
+ * 🔼 scrollToTopBeforeSubmit - מגלגל את המסך לראש הטופס לפני שליחת הנתונים
+ *
+ * 📌 תהליך העבודה:
+ * 1️⃣ מוסיף גלילה חלקה עם CSS.
+ * 2️⃣ מגלגל לראש המסך.
+ * 3️⃣ ממתין קלות ומפעיל את שליחת הטופס.
+ */
+function scrollToTopBeforeSubmit() {
+    try {
+        console.log("🔼 מגלגל לראש הדף לפני שליחה...");
+
+        // גלילה חלקה לראש הדף
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+
+        // השהיה קטנה כדי לאפשר לגלילה להתרחש לפני השליחה
+        setTimeout(() => {
+            submitForm(); // הפונקציה הקיימת שלך לשמירת הנתונים
+        }, 400); // אפשר לשחק עם הזמן אם רוצים גלילה איטית יותר
+
+    } catch (error) {
+        console.error("❌ שגיאה בגלילה לראש הדף:", error);
+        submitForm(); // fallback
+    }
+}
+
+
+/**
+ * שולח את נתוני הטופס לשרת ומציג חיווי למשתמש.
+ * מחליף את הודעת הטעינה הקיימת עם חיווי סטטוס תוך כדי ואחרי השליחה.
+ */
+function submitForm() {
+    try {
+        console.log("📩 התחלת שליחת הנתונים לשרת...");
+        
+        // השבתת כפתור השליחה למניעת שליחה כפולה
+        let submitButton = document.getElementById("submitButton");
+        let statusMessage = document.getElementById("loadingMessage"); // זה האלמנט של ההודעה מעל הטופס
+
+        submitButton.disabled = true;
+        statusMessage.innerHTML = '<span class="spinner"></span> ⏳ שולח נתונים... אנא המתן';
+                statusMessage.style.display = "block"; // מציג את ההודעה במקום הודעת הטעינה
+        
+        // איסוף הנתונים מהטופס
+        let formData = {
+  creationDate: document.getElementById("creationDate").value,
+  customerID: document.getElementById("customerID").value,
+  entryDate: document.getElementById("entryDate").value,
+  projectID: document.getElementById("projectID").value,
+  customerName: document.getElementById("customerName").value.trim(),
+  taxID: document.getElementById("taxID").value.trim(),
+  address: document.getElementById("address").value.trim(),
+  email: document.getElementById("email").value.trim(),
+  contactName: document.getElementById("contactName").value.trim(),
+  contactPhone: document.getElementById("contactPhone").value.trim(),
+  contactEmail: document.getElementById("contactEmail").value.trim(),
+  projectName: document.getElementById("projectName").value.trim(),
+  commissionRecipient: document.getElementById("commissionRecipient").value.trim(),
+  commissionMonths: parseInt(document.getElementById("commissionMonths").value) || 0,
+  commissionRate: parseFloat(document.getElementById("commissionRate").value) || 0
+};
+
+
+        console.log("📊 נתונים שנשלחים לשרת:", formData);
+
+        // שליחת הנתונים ל-Google Apps Script עם Success ו-Failure Handlers
+        google.script.run
+            .withSuccessHandler(formSubmissionSuccess)
+            .withFailureHandler(formSubmissionFailure)
+            .saveCustomerData(formData);
+
+    } catch (error) {
+        console.error("❌ שגיאה כללית בפונקציה submitForm:", error);
+        alert("❌ שגיאה כללית בשליחת הנתונים. נסה שוב.");
+    }
+}
+
+
+/**
+ * מטפל בתגובה מהשרת לאחר שליחת הנתונים.
+ * מציג חיווי סטטוס ומסיים את הפעולה בהתאם לתוצאה שהתקבלה.
+ * @param {string} result - התוצאה שחזרה מהשרת ("success" או "error")
+ */
+function formSubmissionSuccess(result) {
+    console.log("📩 קיבלנו תשובה מ-Google Apps Script:", result);
+
+    let statusMessage = document.getElementById("loadingMessage"); // שימוש באותו אלמנט של הטעינה
+    let submitButton = document.getElementById("submitButton");
+
+    if (result === "success") {
+        statusMessage.innerText = "✅ הנתונים נשמרו בהצלחה!";
+        console.log("✅ הנתונים נשמרו בהצלחה בטבלה.");
+        setTimeout(() => google.script.host.close(), 2000); // סגירת הטופס אחרי 2 שניות
+    } else {
+        console.warn("⚠️ הנתונים לא נשמרו כהלכה, אבל נבדוק האם הייתה בעיה אמיתית.");
+
+        if (result === null || result === undefined) {
+            console.warn("⚠️ התקבלה תגובה ריקה מהשרת! ננסה להתעלם אם אין שגיאות ברורות.");
+        } else {
+            statusMessage.innerText = "❌ שגיאה בשמירת הנתונים, נסה שוב.";
+            document.getElementById("submitButton").disabled = false; // הפעלת הכפתור מחדש
+        }
+    }
+}
+
+
+/**
+ * מטפל בכשל תקשורת עם השרת.
+ * מציג הודעת שגיאה מתאימה למשתמש ומאפשר ניסיון נוסף.
+ * @param {Object} error - הודעת השגיאה שחזרה מהשרת.
+ */
+function formSubmissionFailure(error) {
+    console.error("❌ כשל בתקשורת עם השרת:", error);
+
+    let statusMessage = document.getElementById("loadingMessage");
+    let submitButton = document.getElementById("submitButton");
+
+    statusMessage.innerText = "❌ שגיאה בתקשורת עם השרת. נסה שוב.";
+    submitButton.disabled = false; // הפעלת הכפתור מחדש
+}
+
+/**
+ * פונקציה לבדיקה אם כל השדות בטופס מלאים
+ * תאפשר את הכפתור רק אם כל השדות מלאים ושם הלקוח אינו קיים
+ * @param {boolean} fromLastField - מציין אם הקריאה מגיעה מהשדה האחרון
+ */
+function validateForm(fromLastField = false) {
+    try {
+        let requiredFields = ["customerName", "taxID", "address", "email", "contactName", "contactPhone", "contactEmail", "projectName"];
+        let submitButton = document.getElementById("submitButton");
+
+        if (!submitButton) {
+            console.error("❌ כפתור האישור לא נמצא ב-DOM, הבדיקה לא יכולה להתבצע.");
+            return;
+        }
+
+        // בדיקה אם כל השדות מלאים
+        let isValid = requiredFields.every(id => {
+            let field = document.getElementById(id);
+            let value = field ? field.value.trim() : "";
+            console.log(`📋 בדיקת שדה ${id}:`, value ? "✔️ מלא" : "❌ ריק");
+            return value !== "";
+        });
+
+        // אם הקריאה באה מהשדה האחרון והכל תקין - הכפתור יופעל מיד
+        if (fromLastField && isValid) {
+            submitButton.disabled = false;
+            console.log("✅ השדה האחרון מולא - הכפתור הופעל מיד!");
+        } else {
+            submitButton.disabled = !isValid;
+        }
+
+        console.log(`🔍 תוצאה סופית של validateForm(): ${isValid ? "✅ תקין" : "❌ לא תקין"}`);
+        return isValid;
+    } catch (error) {
+        console.error("❌ שגיאה בבדיקת תקינות הטופס validateForm():", error);
+        return false;
+    }
+}
+    </script>
+</head>
+<body>
+  <div class="form-container">
+    <h2>פתיחת לקוח חדש</h2>
+
+    <!-- 🔄 הודעת טעינה -->
+    <div id="loadingMessage" class="loading-message">
+      🔄 טוען נתונים... אנא המתן
+      <span class="spinner"></span>
+    </div>
+
+    <!-- 🔐 שדה סיסמה נסתר למניעת מילוי אוטומטי -->
+    <input type="password" id="hiddenPassword">
+
+    <!-- 📅 שדות טופס -->
+    <div class="form-group"><label>תאריך יצירה:</label><input type="text" id="creationDate" readonly></div>
+    <div class="form-group"><label>מזהה לקוח:</label><input type="text" id="customerID" readonly></div>
+    <div class="form-group"><label>תאריך כניסה למערכת:</label><input type="text" id="entryDate" readonly></div>
+
+    <!-- 🏢 פרטי לקוח -->
+    <div class="form-group"><label>שם לקוח:</label><input type="text" id="customerName" required></div>
+    <p id="warningMessage">⚠️ לקוח זה כבר קיים במערכת!</p>
+    <div class="form-group"><label>ח.פ/מס עוסק:</label><input type="text" id="taxID" maxlength="9" required></div>
+    <div class="form-group"><label>כתובת:</label><input type="text" id="address" required></div>
+    <div class="form-group"><label>דוא"ל:</label><input type="email" id="email" required></div>
+
+    <!-- 📞 פרטי איש קשר -->
+    <div class="form-group"><label>שם איש קשר:</label><input type="text" id="contactName" required></div>
+    <div class="form-group"><label>טלפון איש קשר:</label><input type="text" id="contactPhone" required></div>
+    <div class="form-group"><label>דוא"ל איש קשר:</label><input type="email" id="contactEmail" required></div>
+
+    <!-- 🧾 פרטי עמלה -->
+    <div class="form-group">
+      <label>מקבל עמלה:</label>
+      <select id="commissionRecipient">
+        <option value="">-- ללא --</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>אחוז עמלה:</label>
+      <input type="text" id="commissionRate" readonly>
+    </div>
+    <div class="form-group">
+      <label>חודשי עמלה:</label>
+      <input type="text" id="commissionMonths" readonly>
+    </div>
+    <!-- 🔽 כפתור לגלילה אל סוף הטופס -->
+    <div class="form-group center-button">
+    <button type="button" class="scroll-button" onclick="scrollToSubmit()">⬇ עבור לכפתורי אישור</button>
+    </div>
+
+    <!-- 📌 פרטי פרויקט -->
+    <h3>פרויקט</h3>
+    <div class="form-group"><label>מזהה פרויקט:</label><input type="text" id="projectID" readonly></div>
+    <div class="form-group"><label>שם הפרויקט:</label><input type="text" id="projectName" readonly></div>
+
+    <!-- 🎛️ כפתורים -->
+    <div class="button-container">
+      <button id="cancelButton" onclick="google.script.host.close()">ביטול</button>
+      <button id="submitButton" disabled onclick="scrollToTopBeforeSubmit()">אישור</button>
+
+    </div>
+  </div>
+</body>
+</html>

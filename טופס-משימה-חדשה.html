@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <title>פתיחת משימה חדשה</title>
+    <style>
+body {
+    font-family: Arial, sans-serif;
+    direction: rtl;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.form-container {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+    width: 100%; /* ⬅️ עכשיו הטופס יתפוס את כל רוחב החלון */
+    max-width: 820px; /* ⬅️ מבטיח שהתוכן לא יחרוג ממסכים קטנים */
+    text-align: right;
+    position: relative;
+    margin: auto;
+}
+
+/* ✅ כל השדות ימלאו את כל רוחב הטופס */
+.form-container input, 
+.form-container select, 
+.form-container textarea {
+    width: 100%; /* כל השדות מתרחבים בהתאם לגודל הטופס */
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    appearance: none;
+    background-color: white;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+/* ✅ תיקון כיוון מחזיק המקום (Placeholder) של מספר הטלפון */
+#newContactPhone {
+    direction: rtl; /* מוודא שהכיוון הכללי הוא מימין לשמאל */
+    text-align: right; /* מיישר את כל התוכן וגם את ה-Placeholder לימין */
+}
+
+#newContactPhone::placeholder {
+    text-align: right; /* מוודא שה-placeholder גם מופיע בצד ימין */
+    direction: rtl;
+}
+
+/* ✅ תיקון מחזיק המקום (Placeholder) של הדוא"ל */
+#newContactEmail {
+    direction: ltr;
+    text-align: left;
+    unicode-bidi: plaintext;
+}
+
+#newContactEmail::placeholder {
+    direction: rtl; /* מבטיח שה-placeholder יוצמד לימין */
+    text-align: right; /* מיישר את ה-placeholder לימין */
+}
+
+/* ✅ התאמה מיוחדת לשדה "איש קשר" כך שהוא יציג את כל הנתונים בצורה ברורה */
+#contactPerson {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.loading-message {
+    font-size: 16px;
+    color: blue;
+    text-align: center;
+    margin-bottom: 10px;
+    display: none;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    position: relative;
+    width: 100%;
+}
+
+
+/* 🎡 אנימציה לספינר */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 🎡 עיצוב הספינר */
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid black;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 10px;
+}
+
+
+label {
+    font-weight: bold;
+}
+
+select {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="gray"><path d="M7 10l5 5 5-5z"/></svg>'); 
+    background-repeat: no-repeat;
+    background-position: left 10px center;
+    background-size: 16px;
+    padding-right: 30px;
+}
+
+.error-message {
+    color: red;
+    font-size: 12px;
+    display: none;
+    margin-top: 5px;
+}
+
+input[readonly] {
+    background-color: #f0f0f0;
+    cursor: not-allowed;
+}
+
+.autocomplete-suggestions {
+    position: absolute;
+    border: 1px solid #ccc;
+    background: white;
+    max-height: 150px;
+    overflow-y: auto;
+    width: 100%;
+    z-index: 1000;
+    top: 100%;
+    right: 0;
+    display: none;
+    border-radius: 4px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.autocomplete-suggestion {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.autocomplete-suggestion.selected, .autocomplete-suggestion:hover {
+    background: #f0f0f0;
+}
+
+button {
+    margin-top: 15px;
+    padding: 10px;
+    font-size: 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 48%;
+}
+
+#loadingMessage {
+    position: fixed; /* קובע שהחיווי לא יזוז */
+    top: 0; /* יוצמד לראש המסך */
+    left: 0;
+    width: 100%; /* כל הרוחב */
+    background: rgba(255, 255, 0, 0.8); /* רקע צהוב כדי שיבלוט */
+    color: black;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 10px;
+    z-index: 1000; /* יבטיח שיופיע מעל הכל */
+    display: none; /* יופיע רק כשצריך */
+}
+
+
+#submitButton {
+    background-color: #4CAF50;
+    color: white;
+}
+
+#submitButton:disabled {
+    background-color: #cccccc;
+}
+
+#cancelButton {
+    background-color: #f44336;
+    color: white;
+}
+
+.button-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+  </style>
+
+    <script>
+        let existingCustomers = [];
+        let existingProjects = [];
+        let focusedField = null; // שדה אחרון שהפוקוס אמור לעבור אליו
+
+    document.addEventListener("DOMContentLoaded", function () {
+  
+    disableForm();
+
+    // ✅ הכפתור מושבת מיד עם הטעינה
+    let submitButton = document.getElementById("submitButton");
+    submitButton.disabled = true;
+
+    // ✅ טעינת רשימת הלקוחות
+    google.script.run.withSuccessHandler(function(customers) {
+        populateCustomerList(customers);
+        enableForm();
+
+         // ✅ הצבת פוקוס בשדה הראשון - "לקוח"
+    let customerInput = document.getElementById("customerName");
+    if (customerInput) {
+        customerInput.focus();
+        console.log("📌 הפוקוס הועבר לשדה 'לקוח' בעת טעינת הטופס.");
+    } else {
+        console.error("❌ שגיאה: אלמנט 'customerName' לא נמצא ב-DOM.");
+    }
+
+
+    }).getCustomersForProjectsForm();
+
+    //טיפול בשדה שם משימה  
+    let taskInput = document.getElementById("taskDescription");
+    let statusMessage = document.getElementById("loadingMessage"); // הודעה למשתמש
+
+    if (taskInput) {
+
+          // ✅ 1️⃣ שמירת הערך הקיים כאשר השדה מקבל פוקוס
+        taskInput.addEventListener("focus", function () {
+            previousTaskValue = this.value.trim();
+            console.log(`📌 focus על שדה 'משימה'. ערך קודם: "${previousTaskValue}"`);
+        });
+
+        taskInput.addEventListener("blur", function () {
+            let taskValue = taskInput.value.trim();
+
+               // 🛑 אם הערך **לא השתנה** → פשוט יוצאים לשדה הבא, אין קריאה לשרת!
+            if (taskValue === previousTaskValue) {
+                console.log("ℹ️ יציאה משדה 'משימה' ללא שינוי - אין קריאה לשרת.");
+                moveToNextField(taskInput);
+                return;
+            }
+
+            // ✅ אם השדה ריק – לא מבצעים קריאה לשרת
+            if (taskValue === "") {
+                displayError("taskDescription", "⚠️ חובה להזין תיאור משימה!");
+                taskInput.focus(); // ✅ מחזיר את הפוקוס לשדה "משימה"
+              return  
+            } else {
+              hideError("taskDescription"); // ✅ אם השדה מלא, מסיר הודעת שגיאה
+            }
+
+            // 🔹 1️⃣ השבתת הטופס + הצגת הודעה
+            resetTaskFieldsWithoutTaskName() //איפוס נתונים אוטומאטיים
+            disableForm();
+            statusMessage.innerText = "⏳ טוען נתונים, אנא המתן...";
+            statusMessage.style.display = "block";
+
+            console.log("📡 שולח בקשה לשרת לקבלת נתונים אוטומטיים למשימה...");
+            google.script.run
+                .withSuccessHandler(function (data) {
+                    handleTaskGeneratedFields(data);
+
+                    // 🔹 3️⃣ שחרור הטופס + הסתרת ההודעה אחרי קבלת התשובה
+                    enableForm();
+                    statusMessage.style.display = "none";
+
+                    // ✅ נוסיף גלילה לכפתורי השליחה אחרי יציאה משדה "משימה"
+                    scrollToSubmitButton(); 
+                })
+                .withFailureHandler(function (error) {
+                    console.error("❌ שגיאה בקבלת נתונים מהשרת:", error);
+
+                    // במקרה של שגיאה – שחרור הטופס + הצגת הודעה מתאימה
+                    enableForm();
+                    statusMessage.innerText = "❌ שגיאה בטעינת הנתונים. נסה שוב.";
+                })
+                .getGeneratedFields("task");
+        });
+
+        // ✅ מאזין חדש: כאשר שדה "משימה" מתרוקן – מאפסים את השדות האוטומטיים
+        taskInput.addEventListener("input", function () {
+        let taskValue = taskInput.value.trim();
+
+        if (taskValue === "") {
+        console.warn("⚠️ השדה 'משימה' התרוקן – איפוס שדות אוטומטיים.");
+        resetTaskFields();
+       }
+    });
+
+   }
+
+    // ✅ מאזין לכל שינוי בשדות כדי להפעיל/להשבית את כפתור השליחה
+    document.querySelectorAll("input, select").forEach(input => {
+        input.addEventListener("input", validateForm);
+    });
+});
+
+
+/**
+ * ✅ handleTaskGeneratedFields - מטפל בנתוני המשימה שהתקבלו מהשרת ומעדכן את השדות האוטומטיים בטופס.
+ *
+ * 📌 תהליך העבודה:
+ * 1️⃣ בודק אם הנתונים התקבלו כראוי.
+ * 2️⃣ אם אין נתונים → מדפיס שגיאה ולא מבצע עדכון.
+ * 3️⃣ אם הנתונים תקינים → מעדכן את השדות הבאים:
+ *    - `creationDate` (תאריך יצירת שורה)
+ *    - `taskID` (מזהה משימה)
+ *    - `entryDate` (תאריך כניסה למערכת)
+ *    - `monthEntry` (חודש כניסה)
+ *    - `yearEntry` (שנת כניסה)
+ *    - `startTime` (משעה)
+ * 4️⃣ מדפיס ללוג את הנתונים שהתקבלו לאחר העדכון.
+ * 5️⃣ מבצע בדיקת טופס (`validateForm`) כדי להפעיל את כפתור השליחה במידת הצורך.
+ *
+ * @param {Object} data - אובייקט המכיל את הנתונים מהשרת.
+ */
+function handleTaskGeneratedFields(data) {
+    try {
+        console.log("📡 קבלת נתונים מהשרת:", data);
+
+        // ✅ בדיקה אם הנתונים התקבלו כראוי
+        if (!data) {
+            console.error("❌ שגיאה: נתוני המשימה לא התקבלו מהשרת.");
+            return;
+        }
+
+        // 🔹 בדיקה אם האלמנטים קיימים לפני עדכון
+        let creationDateField = document.getElementById("creationDate");
+        let taskIDField = document.getElementById("taskID");
+        let entryDateField = document.getElementById("entryDate");
+        let monthEntryField = document.getElementById("monthEntry");
+        let yearEntryField = document.getElementById("yearEntry");
+        let startTimeField = document.getElementById("startTime");
+
+        if (!creationDateField || !taskIDField || !entryDateField || 
+            !monthEntryField || !yearEntryField || !startTimeField) {
+            console.error("❌ שגיאה: אחד או יותר מהשדות האוטומטיים לא נמצאו ב-DOM.");
+            return;
+        }
+
+        // ✅ עדכון השדות עם הנתונים שהתקבלו
+        creationDateField.value = data.creationDate || "";
+        taskIDField.value = data.taskID || "";
+        entryDateField.value = data.entryDate || "";
+        monthEntryField.value = data.monthEntry || "";
+        yearEntryField.value = data.yearEntry || "";
+        startTimeField.value = data.startTime || "";
+
+        console.log("✅ שדות אוטומטיים עודכנו בהצלחה:", {
+            creationDate: creationDateField.value,
+            taskID: taskIDField.value,
+            entryDate: entryDateField.value,
+            monthEntry: monthEntryField.value,
+            yearEntry: yearEntryField.value,
+            startTime: startTimeField.value
+        });
+
+        // ✅ בדיקת תקינות לטופס
+        validateForm();
+
+    } catch (error) {
+        console.error("❌ שגיאה כללית בפונקציה handleTaskGeneratedFields:", error);
+    }
+}
+
+
+function disableForm() {
+            document.getElementById("loadingMessage").style.display = "block";
+            document.querySelectorAll("input, button").forEach(el => el.disabled = true);
+            let submitButton = document.getElementById("submitButton");
+            submitButton.disabled = true;
+           // submitButton.style.backgroundColor = "#ccc"; // נוודא שהכפתור אפור
+        }
+
+        // ✅ נחזיר את הפוקוס **אחרי שהשרת יחזיר נתונים**
+        function enableForm() {
+        document.getElementById("loadingMessage").style.display = "none";
+        document.querySelectorAll("input, button").forEach(el => el.disabled = false);
+
+      // ✅ אם יש שדה שהוגדר לפוקוס - נחזיר אליו את הפוקוס
+    // ✅ נחזיר את הפוקוס **רק עכשיו!**
+        if (focusedField) {
+        focusedField.focus();
+        focusedField = null;
+            }
+      
+            validateForm(); // ✅ בדיקה לאחר טעינת נתונים אוטומטיים
+        }
+
+     function populateCustomerList(customers) {
+         if (!customers || customers.length === 0) {
+             console.warn("⚠️ רשימת הלקוחות ריקה או לא תקינה.");
+             enableForm();
+             return;
+      }
+
+            customers.sort((a, b) => a.name.trim().localeCompare(b.name.trim(), 'he', { sensitivity: 'base' }));
+            existingCustomers = customers;
+            console.log("✅ רשימת הלקוחות נטענה ומוינה בסדר א-ב:", existingCustomers);
+
+            enableForm();
+            attachCustomerInputEvents();
+        }
+
+
+ /**
+ * ✅ attachCustomerInputEvents - הוספת מאזינים לשדה "שם לקוח"
+ *
+ * 📌 תהליך עבודה:
+ * 1️⃣ בעת `focus` - נשמר הערך הנוכחי של הלקוח (`previousCustomerName`).
+ * 2️⃣ בעת `blur` - בדיקה אם הערך **באמת השתנה**:
+ *     - אם הערך **לא השתנה** → לא קורה כלום.
+ *     - אם הערך **שונה** אך קיים ברשימה → עדכון המערכת.
+ *     - אם הערך **אינו קיים** ברשימה → הצגת שגיאה ואיפוס.
+ * 3️⃣ בעת `input` - עדכון רשימת ההשלמה.
+ * 4️⃣ בעת `keydown` - חצים `ArrowUp/Down` + בחירה עם `Enter/Tab`.
+ */
+function attachCustomerInputEvents() {
+    try {
+        let customerInput = document.getElementById("customerName");
+        let suggestionsBox = document.getElementById("customerSuggestions");
+
+        if (!customerInput) {
+            console.error("❌ שגיאה קריטית: האלמנט 'customerName' לא נמצא.");
+            return;
+        }
+
+        let previousCustomerName = ""; // זוכר את הערך לפני שינוי
+
+        console.log("🔹 התחלת רישום מאזינים לשדה 'שם לקוח'.");
+
+        // ✅ 1️⃣ `focus` - שמירת הערך הקודם של הלקוח
+        customerInput.addEventListener("focus", function () {
+            previousCustomerName = this.value.trim(); // שומר את הערך המקורי
+            console.log(`📌 הפוקוס נכנס לשדה 'שם לקוח'. ערך קודם: "${previousCustomerName}"`);
+            showSuggestions(this.value.trim());
+        });
+
+        // ✅ 2️⃣ `input` - הצגת רשימת ההשלמה
+        customerInput.addEventListener("input", function () {
+            let value = this.value.trim();
+            console.log(`⌨️ שינוי תוכן בשדה 'שם לקוח': "${value}"`);
+            showSuggestions(value);
+            hideError("customer");
+        });
+
+        // ✅ 3️⃣ `keydown` - חצים למעלה/למטה + בחירה עם `Enter` / `Tab`
+        customerInput.addEventListener("keydown", function (event) {
+    let selected = document.querySelector(".autocomplete-suggestion.selected");
+    let suggestions = document.querySelectorAll(".autocomplete-suggestion");
+
+    if (event.key === "ArrowDown") {
+        event.preventDefault();
+        console.log("🔽 חץ למטה - מעבר לאפשרות הבאה.");
+        if (selected) {
+            let next = selected.nextElementSibling;
+            if (next) {
+                selected.classList.remove("selected");
+                next.classList.add("selected");
+                next.scrollIntoView({ block: "nearest", behavior: "smooth" }); // ✅ גלילה תקינה
+            }
+        } else if (suggestions.length > 0) {
+            suggestions[0].classList.add("selected");
+            suggestions[0].scrollIntoView({ block: "nearest", behavior: "smooth" }); // ✅ גלילה תקינה
+        }
+    }
+
+    else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        console.log("🔼 חץ למעלה - מעבר לאפשרות הקודמת.");
+        if (selected) {
+            let prev = selected.previousElementSibling;
+            if (prev) {
+                selected.classList.remove("selected");
+                prev.classList.add("selected");
+                prev.scrollIntoView({ block: "nearest", behavior: "smooth" }); // ✅ גלילה תקינה
+            }
+        }
+    }
+
+    else if (event.key === "Enter" || event.key === "Tab") {
+        if (selected) {
+            event.preventDefault();
+            console.log(`✅ נבחר לקוח: ${selected.dataset.name}, מזהה: ${selected.dataset.id}`);
+            selectCustomer(selected.dataset.name, selected.dataset.id);
+        }
+    }
+});
+
+        // ✅ 4️⃣ `blur` - כאשר יוצאים מהשדה
+        customerInput.addEventListener("blur", function () {
+            setTimeout(() => {
+                let newValue = customerInput.value.trim();
+                let customerID = document.getElementById("customerID").value.trim();
+
+                // 🛑 אם הערך **ריק** - מונע יציאה ומחזיר פוקוס
+                if (newValue === "") {
+                    console.warn("⚠️ השדה 'שם לקוח' ריק - לא מאפשר יציאה.");
+                    displayError("customer", "⚠️ יש להזין שם לקוח!");
+                    customerInput.focus();
+                    return;
+                }
+
+                // ✅ אם הערך **לא השתנה** - לא עושים כלום
+                if (newValue === previousCustomerName) {
+                    console.log("ℹ️ שם הלקוח לא השתנה – אין צורך לאפס שדות.");
+                    return;
+                }
+
+                // 🔍 אם הערך **שונה אך קיים ברשימה** - הכל תקין
+                let foundCustomer = existingCustomers.find(c => c.name === newValue);
+                if (foundCustomer) {
+                    console.log(`✅ שם הלקוח תקף (${newValue}), ממשיכים.`);
+                    return;
+                }
+
+                // ❌ אם הערך **שונה ולא קיים ברשימה** - הצגת שגיאה ואיפוס
+                console.warn("⚠️ שם לקוח לא נמצא ברשימה - מחזיר פוקוס.");
+                resetField(customerInput);
+                displayError("customer", "⚠️ יש לבחור לקוח מהרשימה.");
+                customerInput.focus();
+            }, 200);
+        });
+
+        console.log("✅ כל המאזינים לשדה 'שם לקוח' נוספו בהצלחה.");
+
+    } catch (error) {
+        console.error("❌ שגיאה כללית בפונקציה attachCustomerInputEvents:", error);
+    }
+}
+  
+    function showSuggestions(filterText = "") {
+    let suggestionsBox = document.getElementById("customerSuggestions");
+    suggestionsBox.innerHTML = "";
+
+    let filteredCustomers = existingCustomers.filter(customer =>
+        customer.name.toLowerCase().includes(filterText.toLowerCase())
+    );
+
+    if (filteredCustomers.length === 0) {
+        suggestionsBox.style.display = "none";
+        return;
+    }
+
+    filteredCustomers.forEach((customer, index) => {
+        let suggestion = document.createElement("div");
+        suggestion.classList.add("autocomplete-suggestion");
+        suggestion.textContent = customer.name;
+        suggestion.dataset.name = customer.name;
+        suggestion.dataset.id = customer.id;
+        if (index === 0) {
+            suggestion.classList.add("selected");
+        }
+        suggestion.onclick = function () {
+            selectCustomer(customer.name, customer.id);
+        };
+        suggestionsBox.appendChild(suggestion);
+    });
+
+    suggestionsBox.style.display = "block";
+}
+
+/**
+ * ✅ selectCustomer - מטפל בבחירת לקוח מתוך רשימת ההשלמה.
+ *
+ * 📌 תהליך עבודה:
+ * 1️⃣ בודק אם הלקוח שנבחר זהה ללקוח הנוכחי - אם כן, לא מבצע קריאה לשרת.
+ * 2️⃣ מעדכן את שם הלקוח והמזהה בשדות הטופס.
+ * 3️⃣ מסתיר הודעות שגיאה ומסיר את תיבת ההשלמה.
+ * 4️⃣ משבית את הטופס בזמן שליפת הנתונים מהשרת.
+ * 5️⃣ לאחר קבלת הנתונים, מבצע:
+ *     - עיבוד הנתונים ב- `handleCustomerData`
+ *     - עדכון רשימת הפרויקטים
+ *     - הוספת מאזינים לשדה שם פרויקט
+ *     - קביעת פוקוס לשדה הבא
+ *
+ * 🛑 טיפול בשגיאות:
+ * - בודק תקינות של האלמנטים (`customerName`, `customerID`).
+ * - בודק אם הנתונים שהתקבלו מהשרת תקינים.
+ * - מתעד כל שלב בקונסול כדי לאפשר ניטור ופתרון בעיות.
+ *
+ * @param {string} name - שם הלקוח שנבחר
+ * @param {string} id - מזהה הלקוח שנבחר
+ */
+function selectCustomer(name, id) {
+    try {
+        console.log(`🟢 selectCustomer הופעלה - נבחר לקוח: "${name}", מזהה: ${id}`);
+
+        // 🔍 שליפת האלמנטים מה-DOM
+        let customerInput = document.getElementById("customerName");
+        let customerIDInput = document.getElementById("customerID");
+        let suggestionsBox = document.getElementById("customerSuggestions"); // ✅ הגדרה נכונה
+
+        if (!customerInput || !customerIDInput) {
+            console.error("❌ selectCustomer - אחד מהאלמנטים 'customerName' או 'customerID' לא נמצא!");
+            return;
+        }
+
+        let currentName = customerInput.value.trim();
+        let currentID = customerIDInput.value.trim();
+
+         
+        // ✅ אם השם והמזהה **לא השתנו** – לא נבצע קריאה לשרת
+        if (currentName === name.trim() && currentID === id.trim()) {
+            console.log("ℹ️ selectCustomer - יציאה ללא שינוי: אין צורך בקריאה לשרת.");
+
+             // ✅ סגירת תיבת ההשלמה תמיד בעת יציאה מהשדה
+            suggestionsBox.style.display = "none";
+
+            // ✅ מעבר לשדה הבא הזמין בטופס
+            moveToNextField(customerInput);
+            return; // ❌ מונע קריאה מיותרת לשרת
+        }
+
+        console.log(`🔄 selectCustomer - מעדכן את הלקוח בטופס: "${name}" (ID: ${id})`);
+
+        // ✅ עדכון שדות הלקוח בטופס
+        customerInput.value = name;
+        customerIDInput.value = id;
+
+        // ✅ הסתרת הודעת שגיאה (אם הייתה)
+        hideError("customer");
+
+        // ✅ הסתרת תיבת ההשלמה
+        document.getElementById("customerSuggestions").style.display = "none";
+
+        resetProjectAndTaskFields(); // ✅ פונקציה קיימת שמאפסת נתוני פרויקט
+        
+        // 🛑 השבתת הטופס במהלך טעינת הנתונים
+        console.log("⏳ selectCustomer - משבית את הטופס בזמן שליפת הנתונים...");
+        disableForm();
+
+        // 🚀 קריאה לשרת לקבלת נתוני הלקוח
+        google.script.run
+            .withSuccessHandler(function (data) {
+                try {
+                    console.log("📡 selectCustomer - נתוני לקוח שהתקבלו מהשרת:", data);
+
+                    if (!data) {
+                        console.error("❌ selectCustomer - הנתונים שהתקבלו מהשרת ריקים!");
+                        enableForm();
+                        return;
+                    }
+
+                    // ✅ עיבוד נתוני הלקוח
+                    handleCustomerData(data);
+
+                    // ✅ הוספת האזנות לשדה "שם פרויקט" (לאחר טעינת הנתונים)
+                    addProjectNameListeners();
+
+                    // ✅ מעבר לשדה הבא הזמין בטופס
+                    moveToNextField(customerInput);
+
+                    console.log("✅ selectCustomer - עדכון הנתונים הושלם בהצלחה!");
+
+                } catch (error) {
+                    console.error("❌ selectCustomer - שגיאה בעת עיבוד הנתונים שהתקבלו:", error);
+                    enableForm();
+                }
+            })
+            .withFailureHandler(function (error) {
+                console.error("❌ selectCustomer - כשל בתקשורת עם השרת:", error);
+                alert("❌ שגיאה בשליפת נתוני הלקוח. נסה שוב.");
+                enableForm();
+            })
+            .getCustomerData(id);
+
+    } catch (error) {
+        console.error("❌ selectCustomer - שגיאה כללית בפונקציה:", error);
+    }
+}
+
+
+/**
+ * מאזינה לשינויים בשדה "שם פרויקט" ומוודאת שאין כפילות.
+ * 
+ * 🚀 תהליך העבודה:
+ * 1. מאזינה להקלדה בשדה "שם פרויקט" ומזהה אם השם כבר קיים ברשימת הפרויקטים של הלקוח.
+ * 2. אם שם הפרויקט קיים → תוצג הודעת שגיאה, והשדה יסומן עם `data-duplicate="true"`.
+ * 3. אם שם הפרויקט לא קיים → תוסר הודעת השגיאה, והשדה יסומן עם `data-duplicate="false"`.
+ * 4. מאזינה לניסיון יציאה מהשדה (Tab או לחיצה מחוץ לשדה).
+ *    - אם יש כפילות → מונעת יציאה ומחזירה את הפוקוס לשדה.
+ *    - אם אין כפילות → מאפשרת מעבר לשדה הבא.
+ */
+function addProjectNameListeners() {
+    try {
+        let projectInput = document.getElementById("projectName");
+
+        if (!projectInput) {
+            console.error("❌ שגיאה: לא נמצא אלמנט בשם projectName!");
+            return;
+        }
+
+        console.log("🔹 מאזינים נוספו לשדה 'שם פרויקט'.");
+
+        projectInput.addEventListener("blur", function () {
+    let projectName = projectInput.value.trim();
+
+    if (projectName === "") {  
+        console.warn("⚠️ חובה לבחור פרויקט מהרשימה!");
+        displayError("project", "⚠️ יש לבחור פרויקט.");
+        projectInput.focus(); // ❌ לא מאפשר יציאה אם השדה ריק
+    } else {
+        hideError("project");
+    }
+});
+
+    } catch (error) {
+        console.error("❌ שגיאה כללית בפונקציה addProjectNameListeners:", error);
+    }
+}
+
+function moveToNextField(currentField) {
+    let formElements = Array.from(document.querySelectorAll("input, select, button"));
+    let currentIndex = formElements.indexOf(currentField);
+
+    do {
+        currentIndex++;
+    } while (currentIndex < formElements.length && formElements[currentIndex].readOnly);
+
+    if (currentIndex < formElements.length) {
+        formElements[currentIndex].focus();
+    }
+}
+
+// ✅ פונקציה שמחזירה את השדה הבא הפתוח להקלדה
+function getNextField(currentField) {
+    let formElements = Array.from(document.querySelectorAll("input:not([readonly]), select, button"));
+    let currentIndex = formElements.indexOf(currentField);
+
+    if (currentIndex >= 0 && currentIndex < formElements.length - 1) {
+        return formElements[currentIndex + 1]; // מחזירה את השדה הבא
+    }
+    return null;
+}
+
+function handleCustomerData(data) {
+    if (!data) {
+        console.error("❌ שגיאה: לא התקבלו נתוני לקוח.");
+        return;
+    }
+
+    // ✅ אוכלס תפריט הבחירה של הפרויקטים בטופס
+    populateProjectDropdown(data.projects);
+
+    enableForm();
+}
+
+/**
+ * 🚀 populateProjectDropdown - מאכלסת את הרשימה הנפתחת של הפרויקטים בטופס "פעילות חדשה"
+ *
+ * 📌 תהליך העבודה:
+ * 1️⃣ איפוס הרשימה הקיימת (מחיקת אפשרויות קודמות).
+ * 2️⃣ יצירת אפשרויות (`<option>`) מתוך המערך `projects` שהתקבל מהשרת.
+ * 3️⃣ הוספת מזהה הפרויקט, איש הקשר ולינק לרישום הפעילות לכל אפשרות (`data-*` attributes).
+ * 4️⃣ הוספת מאזין לאירוע שינוי (`change`):
+ *    - כאשר משתמש בוחר פרויקט:
+ *      ✅ מזהה הפרויקט יוצב בשדה `projectID`.
+ *      ✅ שם איש הקשר יוצב בשדה `contactPerson`.
+ *      ✅ הלינק לקובץ רישום הפעילות יוצב בשדה `activityLogLink`.
+ *    - אם אין בחירה → כל השדות יאופסו.
+ *
+ * @param {Array} projects - מערך של אובייקטים המכילים מידע על הפרויקטים.
+ *                           כל אובייקט מכיל:
+ *                           - `projectID` (string) - מזהה הפרויקט.
+ *                           - `projectName` (string) - שם הפרויקט.
+ *                           - `contactPerson` (string) - שם איש הקשר המשויך לפרויקט.
+ *                           - `activityLogLink` (string) - לינק למסמך DOCS עם רישום הפעילות של הפרויקט.
+ */
+function populateProjectDropdown(projects) {
+    let projectSelect = document.getElementById("projectName");
+
+    // ❌ בדיקה אם האלמנט קיים ב-DOM, אם לא - הצגת שגיאה
+    if (!projectSelect) {
+        console.error("❌ שגיאה: לא נמצא אלמנט בשם 'projectName'.");
+        return;
+    }
+
+    // 🔹 1️⃣ איפוס הרשימה הקיימת (הכנסת אפשרות ברירת מחדל)
+    projectSelect.innerHTML = '<option value="">בחר פרויקט...</option>';
+
+    // 🔹 2️⃣ יצירת אפשרויות חדשות לפי הנתונים שהתקבלו
+    projects.forEach(project => {
+        let option = document.createElement("option");
+        option.value = project.projectName;
+        option.textContent = project.projectName;
+
+        // ✅ שמירת הנתונים כמאפיינים `data-*` לכל אפשרות
+        option.dataset.projectId = project.projectID; // מזהה הפרויקט
+        option.dataset.contactPerson = project.contactPerson || "ללא איש קשר"; // איש הקשר המשויך לפרויקט
+        option.dataset.activityLogLink = project.activityLogLink || ""; // לינק לרישום הפעילות
+
+        projectSelect.appendChild(option);
+    });
+
+    /**
+     * 🔹 3️⃣ מאזין לשינוי בבחירת פרויקט
+     *    - כאשר משתמש בוחר פרויקט → הנתונים מתעדכנים בטופס.
+     *    - אם אין בחירה → כל השדות יאופסו.
+     */
+    projectSelect.addEventListener("change", function () {
+        let selectedOption = projectSelect.options[projectSelect.selectedIndex];
+
+        if (selectedOption.value) {
+            // ✅ עדכון השדות בטופס
+            document.getElementById("projectID").value = selectedOption.dataset.projectId;
+            document.getElementById("contactPerson").value = selectedOption.dataset.contactPerson;
+            document.getElementById("activityLogLink").value = selectedOption.dataset.activityLogLink; // עדכון שדה הלינק
+
+            console.log(`📌 נבחר פרויקט: ${selectedOption.value}, מזהה: ${selectedOption.dataset.projectId}, איש קשר: ${selectedOption.dataset.contactPerson}, לוג פעילות: ${selectedOption.dataset.activityLogLink}`);
+
+            // ✅ איפוס שדות המשימה כאשר הפרויקט משתנה
+            resetTaskFields();
+
+            // ✅ מעבר אוטומטי לשדה הבא
+            moveToNextField(this);
+        } else {
+            // ❌ אם אין בחירה - מאפסים את כל השדות הרלוונטיים
+            document.getElementById("projectID").value = "";
+            document.getElementById("contactPerson").value = "";
+            document.getElementById("activityLogLink").value = ""; // איפוס הלינק
+        }
+    });
+}
+
+
+function displayError(field, message) {
+    let errorElement = document.getElementById(`${field}Error`);
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = "block";
+    } else {
+        console.warn(`⚠️ אלמנט השגיאה לא נמצא עבור השדה: ${field}`);
+    }
+}
+
+function hideError(field) {
+    let errorElement = document.getElementById(`${field}Error`);
+    if (errorElement) {
+        errorElement.textContent = "";
+        errorElement.style.display = "none";
+    }
+}
+
+function resetField(field) {
+  field.value = "";
+  showSuggestions("");
+  field.focus();
+}
+
+/**
+ * 🚀 validateForm - פונקציה לבדיקה אם כל תנאי הטופס מולאו כדי לאפשר שליחה.
+ *
+ * 🔍 תהליך העבודה:
+ * 1️⃣ בודקת שכל השדות החיוניים מלאים (לפי הרשימה `requiredFields`).
+ * 2️⃣ מוודאת ששדה "איש קשר" לא נשאר עם ערך ברירת מחדל.
+ * 3️⃣ אם יש שדה חסר, תוצג הודעת שגיאה רלוונטית והשדה יסומן.
+ * 4️⃣ אם כל הנתונים תקינים → כפתור השליחה יופעל ✅.
+ * 5️⃣ אם יש חוסרים → כפתור השליחה יישאר מושבת ❌.
+ *
+ * 🛑 טיפול בשגיאות:
+ * - אם אלמנט לא נמצא ב-DOM → תודפס שגיאה `console.error()`.
+ * - כל שדה חסר → הודעת שגיאה תוצג עם `displayError()`.
+ * - הודעות שגיאה ישנות מנוקות לפני הבדיקה כדי למנוע הצטברות שגיאות.
+ */
+function validateForm() {
+    try {
+        console.log("🔎 התחלת בדיקת הטופס...");
+
+        // ✅ רשימת השדות החיוניים שצריכים להיות מלאים
+        let requiredFields = [
+            { id: "customerName", label: "שם לקוח" },
+            { id: "customerID", label: "מזהה לקוח" },
+            { id: "projectName", label: "שם פרויקט" },
+            { id: "creationDate", label: "תאריך יצירה" },
+            { id: "entryDate", label: "תאריך כניסה למערכת" },
+            { id: "projectID", label: "מזהה פרויקט" },
+            { id: "taskDescription", label: "תיאור משימה" }, // ✅ שדה משימה נוסף לרשימה
+            { id: "taskID", label: "מזהה משימה" },
+            { id: "monthEntry", label: "חודש כניסה" },
+            { id: "yearEntry", label: "שנת כניסה" },
+            { id: "startTime", label: "משעה" }
+        ];
+
+        let submitButton = document.getElementById("submitButton");
+        let contactPerson = document.getElementById("contactPerson"); // 📌 שדה "איש קשר"
+        let allFieldsFilled = true;
+
+        console.log("📜 בדיקה שכל השדות החיוניים מלאים...");
+
+        // 🔹 ניקוי הודעות שגיאה ישנות
+        requiredFields.forEach(field => hideError(field.id));
+        hideError("contactPerson"); // מחיקת שגיאה ישנה גם משדה "איש קשר"
+
+        // 🔹 בדיקה שכל השדות הרגילים מלאים
+        for (let field of requiredFields) {
+            let element = document.getElementById(field.id);
+            if (!element) {
+                console.error(`❌ שגיאה קריטית: האלמנט ${field.id} לא נמצא ב-DOM!`);
+                continue; // ממשיכים לבדיקה הבאה
+            }
+
+            let value = element.value.trim();
+            console.log(`🔹 בדיקת שדה "${field.label}":`, value);
+
+            if (value === "") {
+                allFieldsFilled = false;
+                displayError(field.id, `⚠️ ${field.label} הוא שדה חובה!`);
+                console.warn(`⚠️ השדה "${field.label}" ריק - טופס לא תקין.`);
+            }
+        }
+
+        // 🔹 בדיקה מיוחדת לשדה "איש קשר"
+        if (contactPerson) {
+            let contactValue = contactPerson.value.trim();
+            console.log(`🔹 בדיקת שדה "איש קשר":`, contactValue);
+
+            if (contactValue === "" || contactValue === "בחר איש קשר...") {
+                allFieldsFilled = false;
+                displayError("contactPerson", "⚠️ יש לבחור איש קשר!");
+                console.warn(`⚠️ איש קשר לא נבחר - טופס לא תקין.`);
+            }
+        } else {
+            console.error("❌ שגיאה קריטית: אלמנט 'contactPerson' לא נמצא!");
+        }
+
+        // 🔹 הפעלת או השבתת כפתור השליחה
+        if (allFieldsFilled) {
+            submitButton.disabled = false;
+            console.log("✅ כל השדות מלאים, כפתור 'אישור' הופעל.");
+        } else {
+            submitButton.disabled = true;
+            console.warn("⚠️ חלק מהשדות חסרים או לא תקינים, כפתור 'אישור' נשאר מושבת.");
+        }
+
+        console.log("🔎 סיום בדיקת הטופס.");
+
+    } catch (error) {
+        console.error("❌ שגיאה כללית בפונקציה validateForm:", error);
+    }
+}
+
+
+/**
+ * ✅ resetTaskFields - מאפס את השדות האוטומטיים של המשימה.
+ *
+ * 📌 תהליך העבודה:
+ * 1️⃣ מאפס את השדות הבאים כאשר לקוח או פרויקט מתחלפים:
+ *    - `taskDescription` (תיאור משימה)
+ *    - `creationDate` (תאריך יצירת שורה)
+ *    - `taskID` (מזהה משימה)
+ *    - `entryDate` (תאריך כניסה למערכת)
+ *    - `monthEntry` (חודש כניסה)
+ *    - `yearEntry` (שנת כניסה)
+ *    - `startTime` (משעה)
+ * 2️⃣ מדפיס ללוג הודעה על האיפוס.
+ */
+function resetTaskFields() {
+    try {
+        console.log("🔄 מאפס את השדות האוטומטיים של המשימה...");
+
+        document.getElementById("taskDescription").value = ""; // ✅ איפוס שם המשימה
+        document.getElementById("creationDate").value = "";
+        document.getElementById("taskID").value = "";
+        document.getElementById("entryDate").value = "";
+        document.getElementById("monthEntry").value = "";
+        document.getElementById("yearEntry").value = "";
+        document.getElementById("startTime").value = "";
+
+        console.log("✅ כל השדות של המשימה אופסו בהצלחה.");
+
+    } catch (error) {
+        console.error("❌ שגיאה באיפוס השדות האוטומטיים:", error);
+    }
+}
+
+
+function resetTaskFieldsWithoutTaskName() {
+    try {
+        console.log("🔄 מאפס את השדות האוטומטיים של המשימה...");
+
+        document.getElementById("creationDate").value = "";
+        document.getElementById("taskID").value = "";
+        document.getElementById("entryDate").value = "";
+        document.getElementById("monthEntry").value = "";
+        document.getElementById("yearEntry").value = "";
+        document.getElementById("startTime").value = "";
+
+        console.log("✅ כל השדות של המשימה אופסו בהצלחה.");
+
+    } catch (error) {
+        console.error("❌ שגיאה באיפוס השדות האוטומטיים:", error);
+    }
+}
+
+
+
+
+/**
+ * ✅ function resetProjectAndTaskFields() {
+ - מאפס את כל השדות בטופס בעת שינוי או מחיקה של שדה הלקוח.
+ *
+ * 📌 תהליך העבודה:
+ * 1️⃣ מאפס את כל השדות בטופס, כולל:
+ *    - פרטי הלקוח (`customerName`, `customerID`)
+ *    - פרטי הפרויקט (`projectName`, `projectID`, `contactPerson`, `activityLogLink`)
+ *    - נתוני המשימה - באמצעות `resetTaskFields()`
+ * 2️⃣ מנקה הודעות שגיאה אם קיימות.
+ * 3️⃣ מבצע בדיקת תקינות לטופס (`validateForm`) כדי להשבית את כפתור השליחה.
+ */
+function resetProjectAndTaskFields() {
+    try {
+        console.log("🔄 מאפס את כל השדות בטופס...");
+
+        // ✅ איפוס שדות הפרויקט
+        document.getElementById("projectName").value = "";
+        document.getElementById("projectID").value = "";
+        document.getElementById("contactPerson").value = "";
+        document.getElementById("activityLogLink").value = "";
+
+        // ✅ איפוס שדות המשימה באמצעות הפונקציה הקיימת
+        resetTaskFields();
+
+        // ✅ ניקוי הודעות שגיאה
+        hideError("customerName");
+        hideError("projectName");
+        hideError("contactPerson");
+        hideError("taskDescription");
+
+        // ✅ בדיקת תקינות הטופס מחדש (מונע שליחה בטעות)
+        validateForm();
+
+        console.log("✅ כל השדות אופסו בהצלחה.");
+
+    } catch (error) {
+        console.error("❌ שגיאה כללית בפונקציה resetFormFields:", error);
+    }
+}
+
+
+/**
+ * 🚀 גולל אוטומטית לכפתור השליחה כאשר מוסיפים איש קשר חדש
+ */
+function scrollToSubmitButton() {
+    try {
+        let submitButton = document.getElementById("submitButton");
+        if (!submitButton) {
+            console.warn("⚠️ כפתור 'שלח' לא נמצא ב-DOM.");
+            return;
+        }
+
+        console.log("📜 מבצע גלילה אוטומטית לכפתור השליחה.");
+        submitButton.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch (error) {
+        console.error("❌ שגיאה בגלילה לכפתור השליחה:", error);
+    }
+}
+
+// מאזין לשינוי בשדה "איש קשר"
+document.getElementById("contactPerson").addEventListener("change", function () {
+    try {
+        console.log("📌 שינוי בערך איש קשר:", this.value);
+        if (this.value === "new") {
+            setTimeout(scrollToSubmitButton, 300); // גוללים אחרי 300ms כדי לאפשר לטופס להתארך
+        }
+    } catch (error) {
+        console.error("❌ שגיאה בהאזנה לשדה 'איש קשר':", error);
+    }
+});
+
+
+/**
+ * 🚀 submitForm - פונקציה לשיגור הנתונים לשרת.
+ *
+ * 🔹 תהליך העבודה:
+ * 1️⃣ השבתת הטופס כדי למנוע שליחה כפולה.
+ * 2️⃣ הצגת חיווי למשתמש על פעולת השליחה.
+ * 3️⃣ איסוף הנתונים מכל השדות בטופס.
+ * 4️⃣ שליחת הנתונים לשרת דרך Google Apps Script.
+ * 5️⃣ טיפול בתגובה – הצלחה או כישלון.
+ */
+function submitForm() {
+    try {
+        console.log("📩 התחלת שליחת הנתונים לשרת...");
+
+        // ✅ גלילה למעלה כדי להציג את חיווי השליחה
+        scrollToTop();
+
+        let submitButton = document.getElementById("submitButton");
+        let statusMessage = document.getElementById("loadingMessage");
+
+        // 🛑 השבתת הכפתור למניעת שליחה כפולה
+        submitButton.disabled = true;
+        statusMessage.innerText = "⏳ שולח נתונים... אנא המתן";
+        statusMessage.style.display = "block";
+
+        // 📋 איסוף הנתונים מהטופס
+        let formData = {
+            customerName: document.getElementById("customerName").value.trim(),
+            customerID: document.getElementById("customerID").value.trim(),
+            projectName: document.getElementById("projectName").value.trim(),
+            projectID: document.getElementById("projectID").value.trim(),
+            contactPerson: document.getElementById("contactPerson").value.trim(),
+            activityLogLink: document.getElementById("activityLogLink").value.trim(),
+            taskDescription: document.getElementById("taskDescription").value.trim(),
+            taskID: document.getElementById("taskID").value.trim(),
+            creationDate: document.getElementById("creationDate").value.trim(),
+            entryDate: document.getElementById("entryDate").value.trim(),
+            monthEntry: document.getElementById("monthEntry").value.trim(),
+            yearEntry: document.getElementById("yearEntry").value.trim(),
+            startTime: document.getElementById("startTime").value.trim()
+        };
+
+        // 🔹 אם נבחר "➕ הוסף איש קשר חדש" - נוסיף גם את פרטיו
+        if (formData.contactPerson === "new") {
+            formData.newContact = {
+                name: document.getElementById("newContactName").value.trim(),
+                phone: document.getElementById("newContactPhone").value.trim(),
+                email: document.getElementById("newContactEmail").value.trim()
+            };
+        }
+
+        console.log("📊 שולח את הנתונים לשרת:", formData);
+
+        // 🚀 שליחת הנתונים לשרת – כל ההחלטות יתבצעו שם
+        google.script.run
+            .withSuccessHandler(formSubmissionSuccess)
+            .withFailureHandler(formSubmissionFailure)
+            .saveTaskData(formData); // ✅ שינוי לשם הפונקציה המתאימה בשרת
+
+    } catch (error) {
+        console.error("❌ שגיאה כללית בפונקציה submitForm:", error);
+        alert("❌ שגיאה כללית בשליחת הנתונים. נסה שוב.");
+        submitButton.disabled = false;
+        statusMessage.style.display = "none";
+    }
+}
+
+
+
+
+/**
+ * 🚀 גולל אוטומטית לראש הדף כדי להציג את חיווי השליחה
+ */
+function scrollToTop() {
+    try {
+        console.log("📜 מבצע גלילה אוטומטית לראש הדף.");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+        console.error("❌ שגיאה בגלילה לראש הדף:", error);
+    }
+}
+
+// מאזין ללחיצה על כפתור "שלח"
+let submitButton = document.getElementById("submitButton");
+
+if (submitButton) {
+    submitButton.addEventListener("click", function () {
+        try {
+            console.log("📌 לחיצה על 'שלח' – מבצע גלילה למעלה.");
+            scrollToTop();
+        } catch (error) {
+            console.error("❌ שגיאה בהאזנה ללחיצה על 'שלח':", error);
+        }
+    });
+}
+
+
+
+/**
+ * מטפל בתגובה מהשרת לאחר שליחת הנתונים.
+ * 
+ * תהליך העבודה:
+ * 1. בודק את התוצאה שהוחזרה מהשרת (`result`).
+ * 2. אם התוצאה היא `"success"` - מציג הודעת הצלחה, ממתין 2 שניות, וסוגר את הטופס.
+ * 3. אם התוצאה היא `"error"` - מציג הודעת שגיאה למשתמש ומפעיל מחדש את כפתור השליחה.
+ *
+ * @param {string} result - תוצאת הבקשה מהשרת ("success" או "error").
+ */
+function formSubmissionSuccess(result) {
+    console.log("📩 קיבלנו תשובה מ-Google Apps Script:", result);
+
+    let statusMessage = document.getElementById("loadingMessage");
+    let submitButton = document.getElementById("submitButton");
+
+    if (result === "success") {
+        statusMessage.innerText = "✅ הנתונים נשמרו בהצלחה!";
+        console.log("✅ הנתונים נשמרו בהצלחה בטבלה.");
+        setTimeout(() => google.script.host.close(), 2000); // ⏳ סגירת הטופס אחרי 2 שניות
+    } else {
+        statusMessage.innerText = "❌ שגיאה בשמירת הנתונים, נסה שוב.";
+        submitButton.disabled = false; // 🔄 הפעלת הכפתור מחדש
+    }
+}
+
+/**
+ * מטפל בכשל תקשורת עם השרת.
+ * 
+ * תהליך העבודה:
+ * 1. מציג הודעת שגיאה למשתמש.
+ * 2. מאפשר ניסיון חוזר על ידי הפעלת כפתור השליחה מחדש.
+ *
+ * @param {Object} error - הודעת השגיאה שחזרה מהשרת.
+ */
+function formSubmissionFailure(error) {
+    console.error("❌ כשל בתקשורת עם השרת:", error);
+
+    let statusMessage = document.getElementById("loadingMessage");
+    let submitButton = document.getElementById("submitButton");
+
+    statusMessage.innerText = "❌ שגיאה בתקשורת עם השרת. נסה שוב.";
+    submitButton.disabled = false; // 🔄 הפעלת הכפתור מחדש כדי לאפשר ניסיון חוזר
+}
+    </script>
+</head>
+<body>
+    <div class="form-container">
+        <h2>פתיחת משימה חדשה</h2>
+        <div id="loadingMessage" class="loading-message">
+         🔄 טוען נתונים... אנא המתן
+         <span class="spinner"></span>
+        </div>
+        
+        <div class="form-group">
+            <label>שם לקוח:</label>
+            <input type="text" id="customerName" autocomplete="off" required>
+            <div id="customerSuggestions" class="autocomplete-suggestions"></div>
+            <div id="customerError" class="error-message"></div>
+        </div>
+        <div class="form-group">
+            <label>מזהה לקוח:</label>
+            <input type="text" id="customerID" readonly>
+        </div>
+        <div class="form-group">
+            <label>פרויקט פתוח:</label>
+            <select id="projectName">
+                <option value="">בחר פרויקט...</option>
+            </select>
+            <div id="projectNameError" class="error-message"></div> <!-- ✅ שדה הודעת השגיאה נוסף כאן -->
+        </div>
+        <div class="form-group">
+            <label>מזהה פרויקט:</label>
+            <input type="text" id="projectID" readonly>
+        </div>
+        <div class="form-group">
+            <label>איש קשר:</label>
+            <input type="text" id="contactPerson" readonly>
+        </div>
+        <div class="form-group">
+            <label>קישור ללוג פעילות:</label>
+            <input type="text" id="activityLogLink" name="activityLogLink" readonly>
+        </div>
+        <div class="form-group">
+            <label>תיאור המשימה:</label>
+            <input type="text" id="taskDescription" maxlength="60">
+            <div id="taskDescriptionError" class="error-message"></div> <!-- ✅ שדה הודעת השגיאה נוסף כאן -->
+        </div>
+        
+        <!-- שדות אוטומטיים -->
+        <div class="form-group">
+            <label>תאריך יצירת שורה:</label>
+            <input type="text" id="creationDate" readonly>
+        </div>
+        <div class="form-group">
+            <label>מזהה משימה:</label>
+            <input type="text" id="taskID" readonly>
+        </div>
+        <div class="form-group">
+            <label>תאריך כניסה למערכת:</label>
+            <input type="text" id="entryDate" readonly>
+        </div>
+        <div class="form-group">
+            <label>חודש כניסה:</label>
+            <input type="text" id="monthEntry" readonly>
+        </div>
+        <div class="form-group">
+            <label>שנת כניסה:</label>
+            <input type="text" id="yearEntry" readonly>
+        </div>
+        <div class="form-group">
+            <label>משעה:</label>
+            <input type="text" id="startTime" readonly>
+        </div>
+
+        <div class="button-container">
+            <button id="cancelButton" onclick="google.script.host.close()">ביטול</button>
+            <button id="submitButton" type="button" disabled onclick="submitForm()">אישור</button>
+        </div>
+    </div>
+</body>
+</html>
