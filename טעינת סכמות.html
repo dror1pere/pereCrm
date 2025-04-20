@@ -1,0 +1,45 @@
+<script>
+/**
+ * 📦 loadSchemaFromDOM – טוענת סכמה בפורמט JSON מתוך תגית <script type="application/json"> בדף.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ מאתרת את תגית ה־<script> לפי מזהה (`id`).
+ * 2️⃣ בודקת אם קיימת ומכילה תוכן.
+ * 3️⃣ מנסה לפרש את התוכן כ־JSON תקני.
+ * 4️⃣ מחזירה את הסכמה כאובייקט JS או null במקרה של כשל.
+ *
+ * 🛑 טעינה מבוססת DOM בלבד – אין קריאה לרשת.
+ * 🧠 נועדה לשימוש ברגע טעינת הדף בצד לקוח (DOM fully loaded).
+ *
+ * @param {string} id - מזהה תגית הסכמה (למשל: schema-new-customer).
+ * @returns {Object|null} אובייקט הסכמה או null במקרה של שגיאה.
+ */
+function loadSchemaFromDOM(id) {
+  console.log(`[loadSchemaFromDOM] ▶ התחלת טעינת סכמה מתוך תגית '${id}'`);
+
+  try {
+    const scriptTag = document.getElementById(id);
+
+    if (!scriptTag) {
+      console.warn(`[loadSchemaFromDOM] ⚠️ תגית עם id='${id}' לא נמצאה בדף`);
+      return null;
+    }
+
+    const jsonText = scriptTag.textContent;
+
+    if (!jsonText || jsonText.trim() === "") {
+      console.warn(`[loadSchemaFromDOM] ⚠️ תגית '${id}' ריקה או ללא תוכן`);
+      return null;
+    }
+
+    const schema = JSON.parse(jsonText);
+
+    console.log(`[loadSchemaFromDOM] ✅ סכמה נטענה בהצלחה מתוך '${id}'`);
+    return schema;
+
+  } catch (error) {
+    console.error(`[loadSchemaFromDOM] ❌ שגיאה בעת טעינת סכמה '${id}':`, error);
+    return null;
+  }
+}
+</script>

@@ -1,0 +1,74 @@
+<script type="application/json" id="schema-new-customer">
+{
+  "title": "פתיחת לקוח חדש",
+  "sections": [
+    {
+      "title": "פרטי מערכת",
+      "fields": [
+        { "id": "creationDate", "type": "text", "label": "תאריך יצירה", "readonly": true },
+        { "id": "customerID", "type": "text", "label": "מזהה לקוח", "readonly": true },
+        { "id": "entryDate", "type": "text", "label": "תאריך כניסה למערכת", "readonly": true }
+      ]
+    },
+    {
+      "title": "פרטי לקוח",
+      "fields": [
+        { "id": "customerName", "type": "text", "label": "שם לקוח", "required": true },
+        { "id": "taxID", "type": "text", "label": "ח.פ/מס עוסק", "required": true },
+        { "id": "address", "type": "text", "label": "כתובת", "required": true },
+        { "id": "email", "type": "email", "label": "דוא\"ל", "required": true }
+      ]
+    },
+    {
+      "title": "פרטי איש קשר",
+      "fields": [
+        { "id": "contactName", "type": "text", "label": "שם איש קשר", "required": true },
+        { "id": "contactPhone", "type": "text", "label": "טלפון איש קשר", "required": true },
+        { "id": "contactEmail", "type": "email", "label": "דוא\"ל איש קשר", "required": true }
+      ]
+    },
+    {
+      "title": "פרטי עמלה",
+      "fields": [
+        { "id": "commissionRecipient", "type": "select", "label": "מקבל עמלה" },
+        { "id": "commissionRate", "type": "text", "label": "אחוז עמלה", "readonly": true },
+        { "id": "commissionMonths", "type": "text", "label": "חודשי עמלה", "readonly": true }
+      ]
+    },
+    {
+      "title": "פעולה",
+      "fields": [
+        {
+          "id": "scrollButton",
+          "type": "button-custom",
+          "label": "⬇ עבור לכפתורי אישור",
+          "onclick": "scrollToSubmit()",
+          "class": "scroll-button center-button"
+        }
+      ]
+    },
+    {
+      "title": "פרטי פרויקט",
+      "fields": [
+        { "id": "projectID", "type": "text", "label": "מזהה פרויקט", "readonly": true },
+        { "id": "projectName", "type": "text", "label": "שם הפרויקט", "readonly": true }
+      ]
+    },
+    {
+      "title": "סיום",
+      "fields": [
+        {
+          "type": "button-group",
+          "config": {
+            "submitId": "submitButton",
+            "submitLabel": "אישור",
+            "submitOnclick": "scrollToTopBeforeSubmit()",
+            "cancelId": "cancelButton",
+            "cancelLabel": "ביטול"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>

@@ -1,0 +1,225 @@
+<script>
+
+/**
+ * 🎨 renderField – פונקציה שמרנדרת שדה יחיד לטופס, על סמך תבנית HTML (template) מוגדרת מראש.
+ *
+ * 1️⃣ בודקת אם קיימת תבנית מתאימה ל-type של השדה (`template-text`, `template-email`, `template-select` וכו').
+ * 2️⃣ אם התבנית קיימת – מבצעת החלפת מזהים בתוך ה-template (id, label, readonly).
+ * 3️⃣ אם חסרה תבנית – רושמת אזהרה ומחזירה מחרוזת ריקה.
+ * 4️⃣ התוצאה היא HTML גולמי שניתן להכניס ישירות ל־innerHTML.
+ *
+ * 🛑 נדרשת נוכחות של התבניות בקובץ HTML הראשי (`<script type="text/template" id="template-...">`)
+ *
+ * @param {Object} field - אובייקט תיאור שדה מתוך הסכמה.
+ * @param {string} field.id - מזהה ייחודי לשדה (משמש גם ל־id ול־name).
+ * @param {string} field.type - סוג השדה: "text", "email", "select", וכו'.
+ * @param {string} [field.label] - טקסט תווית לשדה.
+ * @param {boolean} [field.readonly] - האם השדה לקריאה בלבד.
+ * @returns {string} HTML מוכן להצבה ב־DOM או מחרוזת ריקה במקרה של כשל.
+ */
+function renderField(field) {
+  console.log(`[renderField] ▶ התחלת רינדור שדה: ${field.id}, סוג: ${field.type}`);
+
+  try {
+    // שלב 1️⃣ - איתור התבנית המתאימה לסוג השדה
+    const template = document.getElementById(`template-${field.type}`);
+    if (!template) {
+      console.warn(`[renderField] ⚠️ לא נמצאה תבנית לסוג: '${field.type}' (id: ${field.id})`);
+      return "";
+    }
+
+    // שלב 2️⃣ - החלפת תווים בתבנית
+    let html = template.innerHTML
+      .replace(/{{id}}/g, field.id)
+      .replace(/{{label}}/g, field.label || "")
+      .replace(/{{readonly}}/g, field.readonly ? "readonly" : "");
+
+    console.log(`[renderField] ✅ רינדור הושלם לשדה '${field.id}'`);
+    return html;
+
+  } catch (error) {
+    console.error(`[renderField] ❌ שגיאה כללית ברינדור שדה '${field.id}':`, error);
+    return "";
+  }
+}
+
+</script>
+
+<script>
+/**
+ * 🎯 renderButton – פונקציה לרינדור כפתור HTML על בסיס תבנית מוגדרת מראש (template).
+ * 
+ * 📌 שלבי פעולה:
+ * 1️⃣ מאתרת את ה-template לפי סוג הכפתור (`button-submit`, `button-cancel`, `button-custom`)
+ * 2️⃣ מחליפה בתוך ה-template את המשתנים {{id}}, {{label}}, {{class}}, {{onclick}} בהתאם למאפייני הכפתור.
+ * 3️⃣ מחזירה HTML שניתן לשלב ישירות ב־DOM או ב־innerHTML.
+ * 
+ * 🛑 תנאים מקדימים:
+ * - חובה להגדיר מראש את התבניות בקובץ קומפוננטות כפתורים (`<script type="text/template" id="template-button-...">`)
+ * 
+ * @param {Object} button - אובייקט הגדרה של כפתור (id, label, type, class, onclick)
+ * @param {string} button.id - מזהה ייחודי של הכפתור
+ * @param {string} button.label - טקסט שיופיע בכפתור
+ * @param {string} button.type - סוג התבנית (submit, cancel, custom)
+ * @param {string} [button.class] - מחלקת CSS (ל־custom בלבד)
+ * @param {string} [button.onclick] - פונקציית onclick (ל־custom בלבד)
+ * @returns {string} HTML של הכפתור או מחרוזת ריקה במקרה של שגיאה
+ */
+function renderButton(button) {
+  console.log(`[renderButton] ▶ התחלה: סוג=${button.type}, id=${button.id}`);
+
+  try {
+    const templateId = `template-button-${button.type}`;
+    const template = document.getElementById(templateId);
+
+    if (!template) {
+      console.warn(`[renderButton] ⚠️ תבנית לא נמצאה עבור סוג הכפתור: '${button.type}'`);
+      return "";
+    }
+
+    let html = template.innerHTML
+      .replace(/{{id}}/g, button.id)
+      .replace(/{{label}}/g, button.label || "");
+
+    // טיפול ב־custom בלבד
+    if (button.type === "custom") {
+      html = html
+        .replace(/{{class}}/g, button.class || "btn")
+        .replace(/{{onclick}}/g, button.onclick || "");
+    }
+
+    console.log(`[renderButton] ✅ כפתור '${button.id}' נוצר בהצלחה`);
+    return html;
+
+  } catch (error) {
+    console.error(`[renderButton] ❌ שגיאה ברינדור כפתור '${button.id}':`, error);
+    return "";
+  }
+}
+</script>
+
+<script>
+/**
+ * 🎛️ renderButtonsGroup – פונקציה שיוצרת את קבוצת הכפתורים בתחתית הטופס.
+ * 
+ * 📌 שלבי פעולה:
+ * 1️⃣ מרנדרת כפתור "ביטול" בצד ימין.
+ * 2️⃣ מרנדרת כפתור "אישור" בצד שמאל.
+ * 3️⃣ עוטפת את שניהם בתוך אלמנט flex.
+ * 4️⃣ מחזירה HTML להצבה ב־DOM.
+ *
+ * 🛑 תבניות חובה: template-button-submit, template-button-cancel
+ *
+ * @param {Object} config - הגדרות הכפתורים (פונקציות onclick וכו').
+ * @returns {string} HTML של קבוצת הכפתורים.
+ */
+function renderButtonsGroup(config) {
+  console.log("[renderButtonsGroup] ▶ בניית כפתורי הטופס");
+
+  try {
+    const submit = renderButton({
+      id: "submitButton",
+      label: "אישור",
+      type: "submit",
+      onclick: config.onSubmit || "submitForm()"
+    });
+
+    const cancel = renderButton({
+      id: "cancelButton",
+      label: "ביטול",
+      type: "cancel",
+      onclick: config.onCancel || "google.script.host.close()"
+    });
+
+    return `
+      <div class="button-container">
+        ${cancel}
+        ${submit}
+      </div>
+    `;
+  } catch (error) {
+    console.error("[renderButtonsGroup] ❌ שגיאה בבניית קבוצת כפתורים:", error);
+    return "";
+  }
+}
+</script>
+
+<script>
+/**
+ * 🚀 renderForm – פונקציית רינדור טופס דינאמי לפי סכמה הכוללת מקטעים (sections).
+ * 
+ * 📌 שלבי פעולה:
+ * 1️⃣ מאתר אלמנט יעד לפי מזהה.
+ * 2️⃣ עובר על כל המקטעים (sections) בסכמה.
+ * 3️⃣ בכל מקטע:
+ *    - מרנדר כותרת (אם קיימת)
+ *    - מרנדר כל שדה דרך renderField או כפתור דרך renderButton
+ * 4️⃣ בסיום מוסיף את קבוצת כפתורי השליחה/ביטול אם לא בוטל.
+ * 
+ * @param {Object} schema - אובייקט הסכמה הכולל שדות, פעולות וכפתורים.
+ * @param {string} targetElementId - מזהה אלמנט ה־HTML שאליו ירונדר הטופס.
+ */
+function renderForm(schema, targetElementId) {
+  console.log("📋 [renderForm] ▶ התחלת רינדור טופס עם מקטעים");
+
+  try {
+    const container = document.getElementById(targetElementId);
+    if (!container) {
+      console.error(`❌ [renderForm] אלמנט יעד '${targetElementId}' לא נמצא`);
+      return;
+    }
+
+    if (!schema || !Array.isArray(schema.sections)) {
+      console.error("❌ [renderForm] סכמה לא תקינה - חסרים sections");
+      return;
+    }
+
+    container.innerHTML = ""; // ניקוי קיים
+
+    // 🔁 מעבר על כל מקטע בסכמה
+    schema.sections.forEach((section, sectionIndex) => {
+      console.log(`📦 [renderForm] ▶ מקטע #${sectionIndex + 1}: ${section.title || "(ללא כותרת)"}`);
+
+      // 🏷️ הוספת כותרת אם קיימת
+      if (section.title) {
+        const titleEl = document.createElement("h3");
+        titleEl.textContent = section.title;
+        container.appendChild(titleEl);
+      }
+
+      // 🧩 רינדור שדות/כפתורים בתוך המקטע
+      section.fields.forEach((item, i) => {
+        console.log(`🔧 [renderForm] ▶ פריט #${i + 1} במקטע: id=${item.id}, type=${item.type}`);
+
+        const isButton = item.type && item.type.startsWith("button");
+
+        const html = isButton ? renderButton(item) : renderField(item);
+
+        if (!html) {
+          console.warn(`⚠️ [renderForm] פריט '${item.id}' לא נרנדר`);
+          return;
+        }
+
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = html;
+        container.appendChild(wrapper.firstElementChild);
+      });
+    });
+
+    // ➕ הוספת קבוצת כפתורים סטנדרטיים לסיום
+    if (schema.includeButtons !== false) {
+      console.log("🎛️ [renderForm] ▶ הוספת כפתורי סיום טופס");
+
+      const buttonsHTML = renderButtonsGroup(schema.buttonConfig || {});
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = buttonsHTML;
+      container.appendChild(wrapper.firstElementChild);
+    }
+
+    console.log("✅ [renderForm] ▶ סיום רינדור טופס");
+
+  } catch (error) {
+    console.error("❌ [renderForm] שגיאה כללית:", error);
+  }
+}
+</script>

@@ -1,0 +1,25 @@
+<!-- ✅ קומפוננטת שדה רגיל -->
+<script type="text/template" id="template-text">
+  <div class="form-group">
+    <label for="{{id}}">{{label}}</label>
+    <input type="text" id="{{id}}" name="{{id}}" {{readonly}} />
+  </div>
+</script>
+
+<!-- ✅ קומפוננטת שדה אימייל -->
+<script type="text/template" id="template-email">
+  <div class="form-group">
+    <label for="{{id}}">{{label}}</label>
+    <input type="email" id="{{id}}" name="{{id}}" {{readonly}} />
+  </div>
+</script>
+
+<!-- ✅ קומפוננטת שדה בחירה -->
+<script type="text/template" id="template-select">
+  <div class="form-group">
+    <label for="{{id}}">{{label}}</label>
+    <select id="{{id}}" name="{{id}}">
+      <option value="">בחר...</option>
+    </select>
+  </div>
+</script>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>פתיחת לקוח חדש</title>
+
+  <!-- ✅ טעינת קבצים משותפים -->
+  <?= include("עיצוב טופס לקוח חדש") ?>
+  <?= include("שלד טופס") ?>
+  <?= include("קומפוננטות שדות") ?>
+  <?= include("קומפוננטות כפתורים") ?>
+  <?= include("טעינת סכימות") ?>  <!-- 💡 לפני בניית טופס -->
+  <?= include("בניית טופס") ?>
+  <?= include("סכמה - לקוח חדש") ?>
+
+</head>
+<body>
+  <div class="form-container">
+
+    <!-- 🔄 טעינת הסכמה ורינדור הטופס -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        try {
+          const schema = loadSchemaFromDOM("schema-new-customer");
+          if (!schema) {
+            console.error("❌ לא ניתן לטעון את הסכמה 'schema-new-customer'");
+            return;
+          }
+          renderForm(schema, "formContainer");
+        } catch (error) {
+          console.error("❌ שגיאה בהפעלת הטופס:", error);
+        }
+      });
+    </script>
+
+    <!-- 📌 אלמנט שאליו יוזרק כל הטופס -->
+    <div id="formContainer"></div>
+
+  </div>
+</body>
+</html>
