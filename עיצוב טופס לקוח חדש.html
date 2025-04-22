@@ -1,107 +1,133 @@
-<style>
-/* 🎨 סגנון בסיסי לגוף הדף */
+/* 🌐 סגנון בסיסי של הדף */
 body {
   font-family: Arial, sans-serif;
   direction: rtl;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: #e6f4ea;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;
-  padding-top: 30px;
+  padding-top: 10px;
   margin: 0;
 }
 
-/* מיכל הטופס */
+/* 📦 מיכל הטופס המרכזי */
 .form-container {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 600px;
+  background: #ffffff;
+  padding: 28px 32px;
+  border-radius: 14px;
+  width: 420px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
   text-align: right;
-  box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
 }
 
-/* קבוצות שדות */
+/* 🧠 כותרת קבועה בראש הטופס (H1 למשל) */
+.main-form-heading {
+  font-size: 28px;
+  font-weight: bold;
+  text-align: center;
+  color: #1e3a8a;
+  margin-bottom: 16px;
+  margin-top: 0;
+}
+
+/* 🧩 כותרת טופס דינאמית מתוך הסכמה */
+#form-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #198754;
+}
+
+/* 🧩 כותרות של מקטעים (sections) */
+.section-title {
+  text-align: center;
+  font-weight: bold;
+  font-size: 18px;
+  margin: 20px 0 10px;
+  color: #198754;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+}
+
+/* 🧱 קבוצות שדות טופס */
 .form-group {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 label {
-  font-weight: bold;
+  font-weight: 600;
   width: 30%;
+  color: #1e3a8a;
 }
 
 input, select {
   width: 65%;
-  padding: 6px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
   font-size: 14px;
-  background-color: white;
+  background-color: #ffffff;
   box-sizing: border-box;
+  transition: border-color 0.2s ease;
 }
 
+/* 🎯 שדות בעת פוקוס */
+input:focus, select:focus {
+  border-color: #3b82f6;
+  outline: none;
+}
+
+/* 🔒 שדות לקריאה בלבד */
 input[readonly] {
-  background-color: #f0f0f0;
+  background-color: #e6f4ea;
   cursor: not-allowed;
 }
 
-/* כפתור פעולה */
-.scroll-button {
-  background-color: #2196F3;
-  color: white;
-  font-size: 14px;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  width: auto;
-  margin: 10px auto;
+/* 🧼 ניקוי אוטומטי של דפדפנים */
+input::-ms-clear,
+input::-ms-reveal {
+  display: none;
 }
 
-.center-button {
+input::after,
+input::before {
+  display: none !important;
+}
+
+/* 🌀 שכבת טעינה שמופיעה מעל הטופס */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.85);
   display: flex;
+  align-items: center;
   justify-content: center;
+  z-index: 999;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
 }
 
-/* קבוצת כפתורים */
-.button-container {
+/* 🌀 תוכן הטעינה */
+.loading-content {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  color: #333;
 }
 
-button {
-  margin-top: 15px;
-  padding: 10px;
-  font-size: 14px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  width: 48%;
-}
-
-#submitButton {
-  background-color: #4CAF50;
-  color: white;
-}
-#submitButton:disabled {
-  background-color: #cccccc;
-}
-
-#cancelButton {
-  background-color: #f44336;
-  color: white;
-}
-
+/* 🔄 אנימציית הספינר */
 .spinner {
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid black;
+  border: 2px solid #3b82f6;
   border-top: 2px solid transparent;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -112,4 +138,87 @@ button {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-</style>
+
+/* 🔽 כפתור גלילה צף לתחתית הטופס */
+.scroll-to-submit-wrapper {
+  position: sticky;
+  bottom: 0;
+  background: #ffffff;
+  padding: 12px 0;
+  display: flex;
+  justify-content: center;
+  z-index: 10;
+  border-top: 1px solid #e5e7eb;
+}
+
+.scroll-to-submit-wrapper button {
+  background-color: #3b82f6;
+  color: white;
+  font-size: 14px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+}
+
+.scroll-to-submit-wrapper button:hover {
+  background-color: #2563eb;
+}
+
+/* 🎛️ כפתורים בתחתית */
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+button {
+  padding: 10px 14px;
+  font-size: 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 48%;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+/* 🟢 כפתור אישור */
+#submitButton {
+  background-color: #10b981;
+  color: white;
+}
+
+#submitButton:hover {
+  background-color: #059669;
+}
+
+#submitButton:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* 🔴 כפתור ביטול */
+#cancelButton {
+  background-color: #ef4444;
+  color: white;
+}
+
+#cancelButton:hover {
+  background-color: #dc2626;
+}
+/* 🔴 הודעת שגיאה כללית בראש הטופס */
+.error-message-global {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-weight: bold;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+  text-align: center;
+  display: none;
+}
+

@@ -1,0 +1,30 @@
+<!-- ✅ שלד טופס בסיסי עם שכבת טעינה -->
+
+<div class="form-container">
+
+  <!-- ⏳ שכבת טעינה חצי שקופה מעל הטופס -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-content">
+      ⏳ טוען נתונים... אנא המתן
+      <span class="spinner"></span>
+    </div>
+  </div>
+
+  <!-- 🏷️ כותרת -->
+  <h1 class="main-form-heading">פרא - מערכת לניהול לקוחות</h1>
+
+  <!-- 🚨 הודעת שגיאה כללית -->
+  <div id="formErrorMessage" class="error-message-global" style="display: none;"></div>
+
+  <!-- 🧩 כותרת טופס דינמית -->
+  <h2 id="form-title">...</h2>
+
+  <!-- 🎯 יעד לרינדור שדות -->
+  <div id="form-body"></div>
+
+  <!-- 🔽 כפתור גלילה בתוך הטופס -->
+  <div class="scroll-to-submit-wrapper">
+    <button id="scrollToBottomBtn" type="button" onclick="scrollToSubmit()">⬇ עבור לכפתורי אישור</button>
+  </div>
+
+</div>

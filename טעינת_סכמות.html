@@ -1,0 +1,43 @@
+/**
+ * פונקציה 002: loadSchemaFromDOM
+ * 🧩 טוענת סכמה בפורמט JSON מתוך תגית <script> עם type="application/json" ו-id ידוע.
+ * ➤ בשימוש בזמן טעינת DOM בלבד (צד לקוח).
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ מאתרת את תגית <script> לפי מזהה ID
+ * 2️⃣ בודקת קיום ותוכן
+ * 3️⃣ מנסה לפרש את התוכן כ־JSON
+ * 4️⃣ מחזירה את אובייקט הסכמה או null במקרה של כשל
+ *
+ * @param {string} id - מזהה תגית הסכמה (למשל: 'schema-dynamic')
+ * @returns {Object|null} אובייקט הסכמה או null אם לא נמצא או לא תקין
+ */
+function loadSchemaFromDOM(id) {
+  console.log(`[002/loadSchemaFromDOM] ▶ התחלת טעינת סכמה מתוך תגית '${id}'`);
+
+  try {
+    // שלב 1️⃣ – איתור תגית לפי ID
+    const scriptTag = document.getElementById(id);
+    if (!scriptTag) {
+      console.warn(`[002/loadSchemaFromDOM] ⚠️ תגית עם id='${id}' לא נמצאה ב־DOM`);
+      return null;
+    }
+
+    // שלב 2️⃣ – שליפת תוכן מתוך התגית
+    const jsonText = scriptTag.textContent;
+    if (!jsonText || jsonText.trim() === "") {
+      console.warn(`[002/loadSchemaFromDOM] ⚠️ תגית '${id}' ריקה או לא מכילה תוכן`);
+      return null;
+    }
+
+    // שלב 3️⃣ – פענוח JSON
+    const schema = JSON.parse(jsonText);
+    console.log(`[002/loadSchemaFromDOM] ✅ הסכמה נטענה בהצלחה מתוך '${id}'`);
+    return schema;
+
+  } catch (error) {
+    // שלב 4️⃣ – טיפול בשגיאה כללית
+    console.error(`[002/loadSchemaFromDOM] ❌ שגיאה בעת פיענוח הסכמה מתוך '${id}':`, error);
+    return null;
+  }
+}

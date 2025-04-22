@@ -1,4 +1,4 @@
-<script>
+
 
 /**
  * 🎨 renderField – פונקציה שמרנדרת שדה יחיד לטופס, על סמך תבנית HTML (template) מוגדרת מראש.
@@ -43,46 +43,49 @@ function renderField(field) {
   }
 }
 
-</script>
-
-<script>
 /**
- * 🎯 renderButton – פונקציה לרינדור כפתור HTML על בסיס תבנית מוגדרת מראש (template).
- * 
+ * פונקציה 012: renderButton
+ * רינדור כפתור HTML על בסיס תבנית מוגדרת מראש.
+ *
  * 📌 שלבי פעולה:
- * 1️⃣ מאתרת את ה-template לפי סוג הכפתור (`button-submit`, `button-cancel`, `button-custom`)
- * 2️⃣ מחליפה בתוך ה-template את המשתנים {{id}}, {{label}}, {{class}}, {{onclick}} בהתאם למאפייני הכפתור.
- * 3️⃣ מחזירה HTML שניתן לשלב ישירות ב־DOM או ב־innerHTML.
- * 
- * 🛑 תנאים מקדימים:
- * - חובה להגדיר מראש את התבניות בקובץ קומפוננטות כפתורים (`<script type="text/template" id="template-button-...">`)
- * 
- * @param {Object} button - אובייקט הגדרה של כפתור (id, label, type, class, onclick)
+ * 1️⃣ בניית מזהה תבנית (template ID) לפי סוג הכפתור.
+ * 2️⃣ טעינת תבנית מתאימה מה־DOM.
+ * 3️⃣ החלפת מזהים בתוך ה־template (id, label, class, onclick).
+ * 4️⃣ החזרת HTML גולמי או מחרוזת ריקה במקרה של שגיאה.
+ *
+ * 🛑 נדרשת נוכחות של template עם id מתאים: template-button-<type>
+ *
+ * @param {Object} button - אובייקט הגדרת כפתור
  * @param {string} button.id - מזהה ייחודי של הכפתור
- * @param {string} button.label - טקסט שיופיע בכפתור
- * @param {string} button.type - סוג התבנית (submit, cancel, custom)
- * @param {string} [button.class] - מחלקת CSS (ל־custom בלבד)
- * @param {string} [button.onclick] - פונקציית onclick (ל־custom בלבד)
- * @returns {string} HTML של הכפתור או מחרוזת ריקה במקרה של שגיאה
+ * @param {string} button.label - טקסט שיוצג בכפתור
+ * @param {string} button.type - סוג הכפתור ("submit", "cancel", "button-custom")
+ * @param {string} [button.class] - מחלקת CSS (רלוונטי ל־custom)
+ * @param {string} [button.onclick] - פונקציית onclick (רלוונטי ל־custom)
+ * @returns {string} HTML מוכן להצבה או מחרוזת ריקה אם נכשל
  */
 function renderButton(button) {
   console.log(`[renderButton] ▶ התחלה: סוג=${button.type}, id=${button.id}`);
 
   try {
-    const templateId = `template-button-${button.type}`;
-    const template = document.getElementById(templateId);
+    // 1️⃣ קביעת מזהה תבנית לפי סוג
+    let templateId = `template-button-${button.type}`;
+    if (button.type === "button-custom") {
+      templateId = "template-button-custom";
+    }
 
+    // 2️⃣ איתור תבנית מתאימה
+    const template = document.getElementById(templateId);
     if (!template) {
       console.warn(`[renderButton] ⚠️ תבנית לא נמצאה עבור סוג הכפתור: '${button.type}'`);
       return "";
     }
 
+    // 3️⃣ החלפת מזהים בתוך התבנית
     let html = template.innerHTML
       .replace(/{{id}}/g, button.id)
       .replace(/{{label}}/g, button.label || "");
 
-    // טיפול ב־custom בלבד
-    if (button.type === "custom") {
+    if (button.type === "button-custom") {
       html = html
         .replace(/{{class}}/g, button.class || "btn")
         .replace(/{{onclick}}/g, button.onclick || "");
@@ -96,9 +99,8 @@ function renderButton(button) {
     return "";
   }
 }
-</script>
 
-<script>
+
 /**
  * 🎛️ renderButtonsGroup – פונקציה שיוצרת את קבוצת הכפתורים בתחתית הטופס.
  * 
@@ -142,57 +144,73 @@ function renderButtonsGroup(config) {
     return "";
   }
 }
-</script>
 
-<script>
 /**
- * 🚀 renderForm – פונקציית רינדור טופס דינאמי לפי סכמה הכוללת מקטעים (sections).
- * 
+ * 🚀 renderForm – רינדור טופס דינאמי על פי סכמה מבוססת מקטעים.
+ *
  * 📌 שלבי פעולה:
- * 1️⃣ מאתר אלמנט יעד לפי מזהה.
- * 2️⃣ עובר על כל המקטעים (sections) בסכמה.
- * 3️⃣ בכל מקטע:
- *    - מרנדר כותרת (אם קיימת)
- *    - מרנדר כל שדה דרך renderField או כפתור דרך renderButton
- * 4️⃣ בסיום מוסיף את קבוצת כפתורי השליחה/ביטול אם לא בוטל.
- * 
- * @param {Object} schema - אובייקט הסכמה הכולל שדות, פעולות וכפתורים.
- * @param {string} targetElementId - מזהה אלמנט ה־HTML שאליו ירונדר הטופס.
+ * 1️⃣ איתור אלמנט יעד להצגת הטופס (`targetElementId`)
+ * 2️⃣ מעבר על כל מקטע בסכמה, כולל כותרת ושדות
+ * 3️⃣ זיהוי כפתור גלילה ושמירתו להוספה בסוף
+ * 4️⃣ הוספת כפתורי שליחה/ביטול סטנדרטיים
+ * 5️⃣ הסתרת שכבת הטעינה לאחר סיום הרינדור
+ *
+ * @param {Object} schema - אובייקט הסכמה (JSON) כפי שהוגדרה ב־<script type="application/json">
+ * @param {string} targetElementId - מזהה אלמנט ה־HTML שבו יוצג הטופס
  */
 function renderForm(schema, targetElementId) {
   console.log("📋 [renderForm] ▶ התחלת רינדור טופס עם מקטעים");
 
+  let scrollButton = null; // 🔹 יישמר אם קיים כפתור גלילה
+
   try {
+    // שלב 1️⃣ - איתור אלמנט היעד להצגת הטופס
     const container = document.getElementById(targetElementId);
     if (!container) {
       console.error(`❌ [renderForm] אלמנט יעד '${targetElementId}' לא נמצא`);
       return;
     }
 
+    // שלב 2️⃣ - בדיקת תקינות הסכמה
     if (!schema || !Array.isArray(schema.sections)) {
       console.error("❌ [renderForm] סכמה לא תקינה - חסרים sections");
       return;
     }
 
-    container.innerHTML = ""; // ניקוי קיים
+    container.innerHTML = ""; // איפוס תוכן קודם
 
-    // 🔁 מעבר על כל מקטע בסכמה
+    // שלב 3️⃣ - עדכון כותרת הטופס אם קיימת
+    const formTitleEl = document.getElementById("form-title");
+    if (formTitleEl && schema.title) {
+      formTitleEl.textContent = schema.title;
+      console.log(`📛 [renderForm] כותרת עודכנה ל: '${schema.title}'`);
+    }
+
+    // שלב 4️⃣ - מעבר על כל מקטע (section)
     schema.sections.forEach((section, sectionIndex) => {
-      console.log(`📦 [renderForm] ▶ מקטע #${sectionIndex + 1}: ${section.title || "(ללא כותרת)"}`);
+    console.log(`📦 [renderForm] ▶ מקטע #${sectionIndex + 1}: ${section.title || "(ללא כותרת)"}`);
 
-      // 🏷️ הוספת כותרת אם קיימת
-      if (section.title) {
-        const titleEl = document.createElement("h3");
-        titleEl.textContent = section.title;
-        container.appendChild(titleEl);
-      }
+      // הוספת כותרת למקטע אם קיימת
+     if (section.title) {
+     const titleEl = document.createElement("h3");
+     titleEl.className = "section-title"; // 🎯 שימוש במחלקת עיצוב
+     titleEl.textContent = section.title;
+     container.appendChild(titleEl);
+    }
 
-      // 🧩 רינדור שדות/כפתורים בתוך המקטע
+
+      // רינדור של כל שדה או כפתור במקטע
       section.fields.forEach((item, i) => {
-        console.log(`🔧 [renderForm] ▶ פריט #${i + 1} במקטע: id=${item.id}, type=${item.type}`);
+        console.log(`🔧 [renderForm] ▶ פריט #${i + 1}: id=${item.id}, type=${item.type}`);
 
-        const isButton = item.type && item.type.startsWith("button");
+        // טיפול מיוחד בכפתור גלילה – לא מרנדרים מיד
+        if (item.type === "button-custom" && item.id === "scrollButton") {
+          scrollButton = item;
+          return;
+        }
 
+        // רינדור כפתור או שדה רגיל
+        const isButton = item.type?.includes("button");
         const html = isButton ? renderButton(item) : renderField(item);
 
         if (!html) {
@@ -206,7 +224,17 @@ function renderForm(schema, targetElementId) {
       });
     });
 
-    // ➕ הוספת קבוצת כפתורים סטנדרטיים לסיום
+    // שלב 5️⃣ - הוספת כפתור גלילה אם קיים
+    if (scrollButton) {
+      console.log("🔽 [renderForm] ▶ הוספת כפתור גלילה לסוף הטופס");
+      const html = renderButton(scrollButton);
+      const wrapper = document.createElement("div");
+      wrapper.className = "center-button";
+      wrapper.innerHTML = html;
+      container.appendChild(wrapper.firstElementChild);
+    }
+
+    // שלב 6️⃣ - הוספת כפתורי שליחה וביטול אם לא הוסרו
     if (schema.includeButtons !== false) {
       console.log("🎛️ [renderForm] ▶ הוספת כפתורי סיום טופס");
 
@@ -216,10 +244,74 @@ function renderForm(schema, targetElementId) {
       container.appendChild(wrapper.firstElementChild);
     }
 
+    // שלב 7️⃣ - הסתרת שכבת הטעינה
+    const overlay = document.getElementById("loadingOverlay");
+    if (overlay) {
+      overlay.style.display = "none";
+    }
+
     console.log("✅ [renderForm] ▶ סיום רינדור טופס");
 
   } catch (error) {
     console.error("❌ [renderForm] שגיאה כללית:", error);
   }
 }
-</script>
+
+
+
+/**
+ * פונקציה 001: showLoadingOverlay
+ * מציגה את שכבת הטעינה (overlay) מעל הטופס.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ מאתרת את האלמנט עם id="loadingOverlay"
+ * 2️⃣ מגדירה display כ־flex לצורך הצגה
+ * 3️⃣ רושמת לוגים למציאת האלמנט ולמצב הפעולה
+ */
+function showLoadingOverlay() {
+  console.log("🟡 [showLoadingOverlay] ▶ מנסה להציג שכבת טעינה");
+
+  try {
+    const overlay = document.getElementById("loadingOverlay");
+
+    if (!overlay) {
+      console.warn("⚠️ [showLoadingOverlay] אלמנט 'loadingOverlay' לא נמצא בדף");
+      return;
+    }
+
+    overlay.style.display = "flex";
+    console.log("✅ [showLoadingOverlay] שכבת טעינה מוצגת");
+
+  } catch (error) {
+    console.error("❌ [showLoadingOverlay] שגיאה בהצגת שכבת טעינה:", error);
+  }
+}
+
+/**
+ * פונקציה 002: hideLoadingOverlay
+ * מסתירה את שכבת הטעינה (overlay) שמכסה את הטופס.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ מאתרת את האלמנט עם id="loadingOverlay"
+ * 2️⃣ מגדירה display כ־none
+ * 3️⃣ רושמת לוגים למציאת האלמנט ולמצב הפעולה
+ */
+function hideLoadingOverlay() {
+  console.log("🟡 [hideLoadingOverlay] ▶ מנסה להסתיר שכבת טעינה");
+
+  try {
+    const overlay = document.getElementById("loadingOverlay");
+
+    if (!overlay) {
+      console.warn("⚠️ [hideLoadingOverlay] אלמנט 'loadingOverlay' לא נמצא בדף");
+      return;
+    }
+
+    overlay.style.display = "none";
+    console.log("✅ [hideLoadingOverlay] שכבת טעינה הוסתרה");
+
+  } catch (error) {
+    console.error("❌ [hideLoadingOverlay] שגיאה בהסתרת שכבת טעינה:", error);
+  }
+}
+

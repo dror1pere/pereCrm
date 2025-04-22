@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="he">
+  <head>
+    <meta charset="UTF-8">
+    <title>פרא</title>
+
+    <!-- 🎨 עיצוב בסיסי של הטופס -->
+    <style>
+      <?!= include("עיצוב טופס לקוח חדש") ?>
+    </style>
+
+    <!-- 📦 סכמת JSON שנבחרה דינאמית -->
+    <?!= include(dynamicSchema) ?>
+
+    <!-- 🧠 קבצי קוד קיימים -->
+    <script>
+      <?!= include("טעינת_סכמות") ?>
+    </script>
+    <script>
+      <?!= include("בניית טופס") ?>
+    </script>
+    <script>
+      <?!= include("כללי - הודעות") ?>
+    </script>
+
+    <!-- 🔒 קבצי קוד עתידיים (מוגנים בתוך הערות) -->
+    <!-- 
+    <script>
+      <?!= include("כללי - אימות") ?>
+    </script>
+    <script>
+      <?!= include("כללי - שליחה") ?>
+    </script>
+    <script>
+      <?!= include("כללי - טיפול בטעינה") ?>
+    </script>
+    -->
+  </head>
+  <body>
+
+    <!-- 🧱 שלד טופס בסיסי -->
+    <?!= include("שלד של טופס") ?>
+
+    <!-- 🧩 קומפוננטות -->
+    <?!= include("קומפוננטות שדות") ?>
+    <?!= include("קומפוננטות כפתורים") ?>
+
+    <!-- 🚀 הפעלת בניית הטופס -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const schema = loadSchemaFromDOM("schema-dynamic");
+        if (!schema) {
+          showGlobalErrorMessage("❌ לא ניתן לטעון את הסכמה.");
+          return;
+        }
+        renderForm(schema, "form-body");
+      });
+    </script>
+
+  </body>
+</html>

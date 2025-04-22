@@ -1,4 +1,4 @@
-<script type="application/json" id="schema-new-customer">
+<script type="application/json" id="schema-dynamic">
 {
   "title": "פתיחת לקוח חדש",
   "sections": [
@@ -33,18 +33,6 @@
         { "id": "commissionRecipient", "type": "select", "label": "מקבל עמלה" },
         { "id": "commissionRate", "type": "text", "label": "אחוז עמלה", "readonly": true },
         { "id": "commissionMonths", "type": "text", "label": "חודשי עמלה", "readonly": true }
-      ]
-    },
-    {
-      "title": "פעולה",
-      "fields": [
-        {
-          "id": "scrollButton",
-          "type": "button-custom",
-          "label": "⬇ עבור לכפתורי אישור",
-          "onclick": "scrollToSubmit()",
-          "class": "scroll-button center-button"
-        }
       ]
     },
     {

@@ -1,0 +1,60 @@
+/**
+ * פונקציה 001: showGlobalErrorMessage
+ * 
+ * 🧨 מציגה הודעת שגיאה כללית בראש הטופס.
+ * 
+ * 📌 שלבי פעולה:
+ * 1️⃣ מאתרת את אלמנט הודעת השגיאה.
+ * 2️⃣ בודקת אם האלמנט קיים ב־DOM.
+ * 3️⃣ מציבה את ההודעה בתוכו.
+ * 4️⃣ מגדירה `display: block` להצגה.
+ * 
+ * @param {string} message - הטקסט של הודעת השגיאה להצגה.
+ */
+function showGlobalErrorMessage(message) {
+  try {
+    console.log("🚨 [showGlobalErrorMessage] הצגת הודעת שגיאה כללית:", message);
+
+    const errorElement = document.getElementById("formErrorMessage");
+    if (!errorElement) {
+      console.error("❌ [showGlobalErrorMessage] האלמנט 'formErrorMessage' לא נמצא ב־DOM.");
+      return;
+    }
+
+    errorElement.textContent = message;
+    errorElement.style.display = "block";
+
+  } catch (error) {
+    console.error("❌ [showGlobalErrorMessage] שגיאה כללית:", error);
+  }
+}
+
+
+/**
+ * פונקציה 002: hideGlobalErrorMessage
+ * 
+ * ✅ מסתירה את הודעת השגיאה הכללית.
+ * 
+ * 📌 שלבי פעולה:
+ * 1️⃣ מאתרת את אלמנט הודעת השגיאה.
+ * 2️⃣ בודקת אם האלמנט קיים ב־DOM.
+ * 3️⃣ מנקה את תוכן ההודעה.
+ * 4️⃣ מסתירה את האלמנט ע״י `display: none`.
+ */
+function hideGlobalErrorMessage() {
+  try {
+    console.log("ℹ️ [hideGlobalErrorMessage] הסתרת הודעת שגיאה כללית.");
+
+    const errorElement = document.getElementById("formErrorMessage");
+    if (!errorElement) {
+      console.warn("⚠️ [hideGlobalErrorMessage] האלמנט 'formErrorMessage' לא נמצא ב־DOM.");
+      return;
+    }
+
+    errorElement.textContent = "";
+    errorElement.style.display = "none";
+
+  } catch (error) {
+    console.error("❌ [hideGlobalErrorMessage] שגיאה כללית:", error);
+  }
+}

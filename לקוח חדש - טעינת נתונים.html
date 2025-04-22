@@ -1,0 +1,186 @@
+/**
+ * פונקציה 001: handleFormData
+ * 
+ * 📦 פונקציה מרכזית לטעינת נתונים שהתקבלו מהשרת אל תוך טופס דינאמי.
+ * 
+ * 📌 שלבי פעולה:
+ * 1️⃣ בדיקת תקינות כללית של אובייקט הנתונים.
+ * 2️⃣ מילוי שדות מערכתיים (מזהים, תאריכים, שם פרויקט).
+ * 3️⃣ שמירת רשימת לקוחות קיימים במשתנה גלובלי.
+ * 4️⃣ טעינת מקבלי עמלה לרשימת בחירה ועדכון שדות עמלה.
+ * 5️⃣ בדיקה האם ניתן להפעיל את הטופס.
+ * 6️⃣ הצגת הודעות שגיאה במקרה של תקלה.
+ * 
+ * @param {Object} data - אובייקט הנתונים שהתקבל מ־Google Apps Script
+ */
+function handleFormData(data) {
+  console.log("📡 [handleFormData] ▶ התחלת עיבוד נתונים שהתקבלו מהשרת...");
+
+  try {
+    // שלב 1️⃣ - בדיקת תקינות כללית
+    if (!data || typeof data !== "object") {
+      console.error("❌ [handleFormData] אובייקט הנתונים ריק או לא תקין:", data);
+      showGlobalErrorMessage("❌ שגיאה בטעינת הנתונים – נסה לרענן את הדף.");
+      return;
+    }
+
+    // שלב 2️⃣ - מילוי שדות מערכתיים
+    fillSystemFields(data.generatedFields);
+
+    // שלב 3️⃣ - שמירת רשימת לקוחות קיימים
+    populateCustomerList(data.existingCustomers);
+
+    // שלב 4️⃣ - טעינת רשימת מקבלי העמלה
+    initializeCommissionSelector(data.commissionRecipients);
+
+    // שלב 5️⃣ - בדיקה סופית
+    const allDataReady = validateInitialData(data);
+    if (allDataReady) {
+      enableForm();
+      console.log("✅ [handleFormData] כל הנתונים נקלטו והטופס מוכן לשימוש.");
+    } else {
+      console.warn("⚠️ [handleFormData] חלק מהנתונים חסרים - חסימה זמנית של הטופס.");
+      showGlobalErrorMessage("⚠️ שגיאה בטעינת נתונים - נסה לרענן את הטופס.");
+    }
+
+  } catch (error) {
+    console.error("❌ [handleFormData] שגיאה כללית בעת טעינת הנתונים:", error);
+    showGlobalErrorMessage("❌ שגיאה כללית. נסה לרענן את הדף.");
+  }
+}
+/**
+ * פונקציה 002: fillSystemFields
+ * 
+ * 🎯 ממלאת את שדות המערכת בטופס – תאריך יצירה, מזהה לקוח, תאריך כניסה, מזהה פרויקט, שם פרויקט.
+ * 
+ * 📌 שלבי פעולה:
+ * 1️⃣ מאתרת כל שדה לפי מזהה ב-DOM.
+ * 2️⃣ בודקת אם השדה קיים.
+ * 3️⃣ ממלאת את הערך שהגיע מהשרת.
+ * 4️⃣ מייצרת ערך לשם פרויקט לפי תאריך במידת הצורך.
+ * 5️⃣ רושמת לוג לכל פעולה.
+ * 
+ * @param {Object} fields - אובייקט המכיל את שדות המערכת (creationDate, customerID, entryDate, projectID)
+ */
+function fillSystemFields(fields) {
+  console.log("🔧 [fillSystemFields] ▶ התחלת מילוי שדות מערכתיים...");
+
+  try {
+    const mapping = {
+      creationDate: "תאריך יצירה",
+      customerID: "מזהה לקוח",
+      entryDate: "תאריך כניסה למערכת",
+      projectID: "מזהה פרויקט",
+      projectName: "שם פרויקט"
+    };
+
+    for (const [id, label] of Object.entries(mapping)) {
+      const element = document.getElementById(id);
+
+      const value = fields?.[id] || (id === "projectName"
+        ? `שיווק ${fields?.creationDate || ''}` : "");
+
+      if (!element) {
+        console.warn(`⚠️ [fillSystemFields] האלמנט '${id}' (${label}) לא נמצא ב-DOM`);
+        continue;
+      }
+
+      element.value = value;
+      console.log(`✅ [fillSystemFields] שדה '${label}' מולא בערך: ${value}`);
+    }
+
+    console.log("✅ [fillSystemFields] סיום מילוי שדות מערכתיים.");
+
+  } catch (error) {
+    console.error("❌ [fillSystemFields] שגיאה כללית:", error);
+  }
+}
+/**
+ * פונקציה 003: populateCustomerList
+ * 
+ * 👥 טוענת את רשימת הלקוחות הקיימים למשתנה גלובלי לשימוש בטופס.
+ * 
+ * 📌 שלבי פעולה:
+ * 1️⃣ בודקת אם הנתונים שהתקבלו מהשרת הם מערך תקין.
+ * 2️⃣ ממיינת את הלקוחות לפי סדר א״ב בעברית.
+ * 3️⃣ שומרת את הרשימה במשתנה גלובלי `existingCustomers`.
+ * 4️⃣ רושמת את הרשימה ללוג.
+ * 
+ * @param {Array} customers - מערך של שמות לקוחות מהשרת.
+ */
+function populateCustomerList(customers) {
+  console.log("📥 [populateCustomerList] התחלת טעינת רשימת לקוחות...");
+
+  try {
+    if (!Array.isArray(customers)) {
+      console.warn("⚠️ [populateCustomerList] הנתונים שהתקבלו אינם מערך תקין:", customers);
+      return;
+    }
+
+    customers.sort((a, b) => a.trim().localeCompare(b.trim(), "he", { sensitivity: "base" }));
+
+    existingCustomers = customers;
+
+    console.log("✅ [populateCustomerList] רשימת הלקוחות נטענה ומוינה:", existingCustomers);
+
+  } catch (error) {
+    console.error("❌ [populateCustomerList] שגיאה כללית:", error);
+  }
+}
+/**
+ * פונקציה 004: initializeCommissionSelector
+ * 
+ * 💼 מאכלסת את רשימת מקבלי העמלה לתוך אלמנט select בטופס, ומגדירה האזנה לעדכון שדות נלווים.
+ * 
+ * 📌 שלבי פעולה:
+ * 1️⃣ בודקת אם האלמנטים הדרושים קיימים (select + שדות עמלה).
+ * 2️⃣ מאפסת את התוכן הקיים ויוצרת אפשרות ברירת מחדל.
+ * 3️⃣ מוסיפה כל מקבל עמלה כ־<option>.
+ * 4️⃣ מאזינה לשינוי ערך ובוחרת את אחוז העמלה והחודשים מתוך מקבל העמלה שנבחר.
+ * 5️⃣ רושמת לוגים מלאים.
+ * 
+ * @param {Array<{name: string, rate: number, months: number}>} recipients - מערך מקבלי העמלה מהשרת.
+ */
+function initializeCommissionSelector(recipients) {
+  console.log("📥 [initializeCommissionSelector] טעינת רשימת מקבלי עמלה...");
+
+  try {
+    const select = document.getElementById("commissionRecipient");
+    const rateField = document.getElementById("commissionRate");
+    const monthsField = document.getElementById("commissionMonths");
+
+    if (!select || !rateField || !monthsField) {
+      console.warn("⚠️ [initializeCommissionSelector] אחד מהשדות commissionRecipient / commissionRate / commissionMonths לא נמצא ב־DOM.");
+      return;
+    }
+
+    // שלב 1️⃣: איפוס הרשימה והוספת ברירת מחדל
+    select.innerHTML = "";
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "-- ללא מקבל עמלה --";
+    select.appendChild(defaultOption);
+
+    // שלב 2️⃣: הוספת כל מקבל לרשימה
+    recipients.forEach(recipient => {
+      const option = document.createElement("option");
+      option.value = recipient.name;
+      option.textContent = recipient.name;
+      select.appendChild(option);
+    });
+
+    // שלב 3️⃣: האזנה לבחירה
+    select.addEventListener("change", () => {
+      const selected = select.value;
+      const found = recipients.find(r => r.name === selected);
+      rateField.value = found ? found.rate : "";
+      monthsField.value = found ? found.months : "";
+      console.log(`✅ [initializeCommissionSelector] מקבל עמלה נבחר: ${selected} | אחוז: ${rateField.value} | חודשים: ${monthsField.value}`);
+    });
+
+    console.log("✅ [initializeCommissionSelector] הרשימה נטענה בהצלחה.");
+
+  } catch (error) {
+    console.error("❌ [initializeCommissionSelector] שגיאה כללית:", error);
+  }
+}
