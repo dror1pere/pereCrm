@@ -1,25 +1,35 @@
 <!-- ✅ קומפוננטת שדה רגיל -->
 <script type="text/template" id="template-text">
   <div class="form-group">
-    <label for="{{id}}">{{label}}</label>
-    <input type="text" id="{{id}}" name="{{id}}" {{readonly}} />
+    <label for="{{id}}" class="form-label">{{label}}</label>
+    <div class="field-wrapper">
+      <input type="text" id="{{id}}" name="{{id}}" {{readonly}} />
+      <div data-error-for="{{id}}" class="field-error" style="display: none;"></div>
+    </div>
   </div>
 </script>
 
 <!-- ✅ קומפוננטת שדה אימייל -->
 <script type="text/template" id="template-email">
   <div class="form-group">
-    <label for="{{id}}">{{label}}</label>
-    <input type="email" id="{{id}}" name="{{id}}" {{readonly}} />
+    <label for="{{id}}" class="form-label">{{label}}</label>
+    <div class="field-wrapper">
+      <input type="email" id="{{id}}" name="{{id}}" {{readonly}} />
+      <div data-error-for="{{id}}" class="field-error" style="display: none;"></div>
+    </div>
   </div>
 </script>
+
 
 <!-- ✅ קומפוננטת שדה בחירה -->
 <script type="text/template" id="template-select">
   <div class="form-group">
-    <label for="{{id}}">{{label}}</label>
-    <select id="{{id}}" name="{{id}}">
-      <option value="">בחר...</option>
-    </select>
+    <label for="{{id}}" class="form-label">{{label}}</label>
+    <div class="field-wrapper">
+      <select id="{{id}}" name="{{id}}">
+        <option value="">בחר...</option>
+      </select>
+      <div data-error-for="{{id}}" class="field-error" style="display: none;"></div>
+    </div>
   </div>
 </script>

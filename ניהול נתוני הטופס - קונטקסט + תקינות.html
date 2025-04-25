@@ -1,0 +1,271 @@
+/**
+ * 🧠 משתנה גלובלי: FORM_CONTEXT
+ *
+ * 🎯 מטרת המשתנה:
+ * אובייקט מרכזי לניהול כל הנתונים, הרשימות, ערכי ברירת מחדל, והקשרים של הטופס הנוכחי.
+ *
+ * 📌 מבנה פנימי:
+ * - validation: רשימות לבדיקה (למשל, לקוחות קיימים)
+ * - dataSources: מקורות ל-selectים וערכי ברירת מחדל
+ * - preloaded: מידע שהוזן מראש כמו זמן שרת או משתמש נוכחי
+ * - formType: סוג הטופס (למשל: "לקוח חדש")
+ * - local: נתונים מקומיים בלעדיים לטופס הספציפי
+ */
+const FORM_CONTEXT = {
+  validation: {},
+  dataSources: {},
+  preloaded: {},
+  formType: "",
+  local: {}
+};
+
+/**
+ * 🧠 פונקציה: flattenSchemaToFields
+ *
+ * 🎯 מטרת הפונקציה:
+ * המרת סכמה היררכית (מבוססת sections) למבנה שטוח של שדות לפי מזהה.
+ * שימושי לחיבור ולידציה או גישה ישירה לשדות.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ מעבר על כל המקטעים (`sections`)
+ * 2️⃣ מעבר על כל `fields` בכל מקטע
+ * 3️⃣ הוספת כל שדה לאובייקט שטוח לפי `id`
+ * 
+ * @param {Object} schema - אובייקט סכמה מלא כולל sections
+ * @returns {Object} - אובייקט שטוח עם שדות לפי id
+ */
+function flattenSchemaToFields(schema) {
+  console.log("📦 [flattenSchemaToFields] ▶ התחלת המרת הסכמה למבנה שטוח");
+
+  const result = {};
+
+  // שלב 1️⃣ – מעבר על כל המקטעים
+  schema.sections.forEach(section => {
+    console.log(`🔍 [flattenSchemaToFields] מקטע: ${section.title}`);
+
+    // שלב 2️⃣ – מעבר על שדות
+    (section.fields || []).forEach(field => {
+      if (field.id) {
+        // שלב 3️⃣ – הוספה למבנה השטוח
+        result[field.id] = field;
+        console.log(`✅ [flattenSchemaToFields] שדה '${field.id}' נוסף למבנה השטוח`);
+      }
+    });
+  });
+
+  console.log("✅ [flattenSchemaToFields] סיום עיבוד סכמה");
+  return result;
+}
+/**
+ * 🧠 פונקציה: attachValidatorsFromSchema
+ *
+ * 🎯 מטרת הפונקציה:
+ * חיבור ולידציה חיה לכל שדה בטופס, בהתאם להגדרות שצוינו בסכמה.
+ * מתעלמת אוטומטית משדות מסוג כפתור (button, button-group וכו').
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ מעבר על כל השדות מהסכמה השטוחה
+ * 2️⃣ דילוג על שדות שאינם ניתנים לוולידציה (כפתורים)
+ * 3️⃣ חיבור הולידטורים והאזנה לאירועים
+ * 4️⃣ עדכון UI בהתאם לתוצאה
+ *
+ * @param {Object<string, Object>} flatSchema - סכמה שטוחה: מיפוי של שדות לפי מזהה
+ */
+function attachValidatorsFromSchema(flatSchema) {
+  console.log("🛠️ [attachValidatorsFromSchema] ▶ התחלת חיבור הולידציה מהסכמה");
+
+  Object.entries(flatSchema).forEach(([fieldId, fieldSchema]) => {
+    console.log(`🔍 [attachValidatorsFromSchema] שדה: '${fieldId}'`);
+
+    // שלב 1️⃣ – דילוג על שדות שאינם שדות קלט
+    const isButtonType = typeof fieldSchema.type === "string" && fieldSchema.type.includes("button");
+    if (isButtonType) {
+      console.log(`ℹ️ [attachValidatorsFromSchema] דילוג על שדה כפתור '${fieldId}'`);
+      return;
+    }
+
+    // שלב 2️⃣ – איתור האלמנט והקונטיינר לשגיאה
+    const field = document.getElementById(fieldId);
+    const errorContainer = document.querySelector(`[data-error-for="${fieldId}"]`);
+    if (!field) {
+      console.warn(`⚠️ [attachValidatorsFromSchema] השדה '${fieldId}' לא נמצא ב־DOM`);
+      return;
+    }
+
+    // שלב 3️⃣ – בניית הולידטורים
+    const validators = buildValidators(fieldSchema);
+    if (!validators.length) {
+      console.log(`ℹ️ [attachValidatorsFromSchema] אין ולידטורים לשדה '${fieldId}'`);
+      return;
+    }
+
+    // שלב 4️⃣ – חיבור מאזינים
+    field.addEventListener("input", () => {
+      const result = runValidators(field.value, validators);
+      updateFieldUI(result, field, errorContainer);
+    });
+
+    field.addEventListener("blur", () => {
+      const result = runValidators(field.value, validators);
+      updateFieldUI(result, field, errorContainer);
+      if (!result.valid) {
+        field.focus();
+      }
+    });
+
+    field.addEventListener("focus", () => {
+      clearFieldError(errorContainer);
+    });
+
+    console.log(`✅ [attachValidatorsFromSchema] ולידציה חוברה לשדה '${fieldId}'`);
+  });
+
+  console.log("✅ [attachValidatorsFromSchema] סיום חיבור ולידציה לכל השדות");
+}
+
+/**
+ * 🧠 פונקציה: buildValidators
+ *
+ * 🎯 מטרת הפונקציה:
+ * יצירת מערך של הולידטורים פונקציונליים לפי הגדרות השדה בסכמה.
+ * תומכת בסוגי ולידציה: required, minLength, regex, unique.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ התחלת מערך הולידטורים ריק
+ * 2️⃣ בדיקה אם השדה מוגדר כ-required – הוספת בדיקה ריקה
+ * 3️⃣ מעבר על מערך validators מותאם אישית בשדה
+ * 4️⃣ הוספת הולידטורים לפי סוג: minLength, regex, unique
+ * 5️⃣ החזרת מערך הולידטורים לפונקציות המשך
+ * 
+ * @param {Object} fieldSchema - אובייקט שדה יחיד מתוך סכמה שטוחה
+ * @returns {Array<Object>} - מערך הולידטורים בפורמט אחיד
+ */
+function buildValidators(fieldSchema) {
+  console.log(`🧪 [buildValidators] ▶ התחלת בניית הולידטורים לשדה '${fieldSchema.id}'`);
+
+  // שלב 1️⃣ – התחלה
+  const validators = [];
+
+  // שלב 2️⃣ – required
+  if (fieldSchema.required) {
+    validators.push({
+      type: "required",
+      validate: val => val.trim() !== "",
+      message: "שדה חובה"
+    });
+    console.log(`➕ [buildValidators] הולידציה: required`);
+  }
+
+  // שלב 3️⃣ – ולידטורים נוספים
+  (fieldSchema.validators || []).forEach(rule => {
+    switch (rule.type) {
+      case "minLength":
+        validators.push({
+          type: "minLength",
+          validate: val => val.trim().length >= rule.value,
+          message: rule.message || `יש להזין לפחות ${rule.value} תווים`
+        });
+        console.log(`➕ [buildValidators] minLength (${rule.value})`);
+        break;
+
+      case "regex":
+        validators.push({
+          type: "regex",
+          validate: val => new RegExp(rule.value).test(val),
+          message: rule.message || "הערך אינו תואם לתבנית הנדרשת"
+        });
+        console.log(`➕ [buildValidators] regex (${rule.value})`);
+        break;
+
+      case "unique":
+        const list = FORM_CONTEXT.validation?.[rule.list];
+        if (!Array.isArray(list)) {
+          console.warn(`⚠️ [buildValidators] הרשימה '${rule.list}' אינה תקפה`);
+          break;
+        }
+        validators.push({
+          type: "unique",
+          validate: val => !list.map(x => x.toLowerCase()).includes(val.trim().toLowerCase()),
+          message: rule.message || "הערך כבר קיים במערכת"
+        });
+        console.log(`➕ [buildValidators] unique מול רשימה '${rule.list}'`);
+        break;
+    }
+  });
+
+  // שלב 5️⃣ – סיום
+  console.log(`✅ [buildValidators] הולידטורים שנוצרו: ${validators.length}`);
+  return validators;
+}
+
+/**
+ * 🧠 פונקציה: runValidators
+ *
+ * 🎯 מטרת הפונקציה:
+ * להריץ את כל הולידטורים של שדה אחד, ולחזיר את תוצאת הבדיקה (האם תקין, ואם לא – הודעה).
+ * משמשת בכל קריאה לשדה כדי לדעת אם להציג שגיאה או לא.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ קבלת ערך לבדיקה ומערך הולידטורים
+ * 2️⃣ מעבר על כל הולידטור לפי הסדר
+ * 3️⃣ הרצה של פונקציית validate()
+ * 4️⃣ עצירה בהולידטור הראשון שנכשל
+ * 5️⃣ החזרת אובייקט תוצאה כולל תקינות והודעה
+ *
+ * @param {string} value - הערך שנמצא בשדה (input)
+ * @param {Array<Object>} validators - מערך הולידטורים מהפונקציה buildValidators
+ * @returns {Object} - תוצאה בפורמט: { valid: boolean, message: string|null }
+ */
+function runValidators(value, validators) {
+  console.log("🔎 [runValidators] ▶ התחלת הרצת הולידטורים");
+
+  // שלב 1️⃣ – קבלת הערך והמערך
+  const inputValue = value.trim();
+
+  // שלב 2️⃣ – מעבר על הולידטורים
+  for (let validator of validators) {
+    // שלב 3️⃣ – הרצת פונקציית בדיקה
+    const passed = validator.validate(inputValue);
+
+    // שלב 4️⃣ – עצירה אם נכשל
+    if (!passed) {
+      console.warn(`❌ [runValidators] כשל בוולידטור: ${validator.type} – ${validator.message}`);
+      return { valid: false, message: validator.message };
+    }
+  }
+
+  // שלב 5️⃣ – הצלחה
+  console.log("✅ [runValidators] כל הולידטורים עברו בהצלחה");
+  return { valid: true, message: null };
+}
+
+/**
+ * 🧠 פונקציה: updateFieldUI
+ *
+ * 🎯 מטרת הפונקציה:
+ * לעדכן את תצוגת השגיאה בשדה בהתאם לתוצאת הולידציה – הצגת הודעה במקרה של כשל או הסרתה במקרה של הצלחה.
+ * כעת עושה שימוש מלא בפונקציות showFieldError / clearFieldError לשמירה על עיצוב אחיד.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ בדיקה אם התוצאה אינה תקינה
+ * 2️⃣ קריאה ל־showFieldError להצגת שגיאה
+ * 3️⃣ אחרת – קריאה ל־clearFieldError
+ * 4️⃣ לוגים תואמים לתוצאה
+ *
+ * @param {Object} result - תוצאה מפונקציית runValidators (מבנה: { valid, message })
+ * @param {HTMLElement} field - אלמנט הקלט (input)
+ * @param {HTMLElement} errorContainer - אלמנט המציג את הודעת השגיאה
+ */
+function updateFieldUI(result, field, errorContainer) {
+  console.log("🎨 [updateFieldUI] ▶ עדכון תצוגת שדה");
+
+  // שלב 1️⃣ – בדיקה האם יש שגיאה
+  if (!result.valid) {
+    console.warn(`⚠️ [updateFieldUI] שגיאה בשדה '${field.id}': ${result.message}`);
+    showFieldError(field.id, result.message);
+  } else {
+    clearFieldError(field.id);
+    console.log(`✅ [updateFieldUI] שדה '${field.id}' תקין – אין שגיאה`);
+  }
+}
+

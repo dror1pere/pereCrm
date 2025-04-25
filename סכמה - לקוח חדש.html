@@ -13,18 +13,103 @@
     {
       "title": "פרטי לקוח",
       "fields": [
-        { "id": "customerName", "type": "text", "label": "שם לקוח", "required": true },
-        { "id": "taxID", "type": "text", "label": "ח.פ/מס עוסק", "required": true },
-        { "id": "address", "type": "text", "label": "כתובת", "required": true },
-        { "id": "email", "type": "email", "label": "דוא\"ל", "required": true }
+        {
+          "id": "customerName",
+          "type": "text",
+          "label": "שם לקוח",
+          "required": true,
+          "validators": [
+            { "type": "unique", "list": "customerList", "message": "שם הלקוח כבר קיים במערכת" }
+          ]
+        },
+        {
+          "id": "taxID",
+          "type": "text",
+          "label": "ח.פ/מס עוסק",
+          "required": true,
+          "validators": [
+            {
+              "type": "regex",
+              "value": "^\\d+$",
+              "message": "יש להזין ספרות בלבד בשדה ח.פ/מס עוסק"
+            },
+            {
+              "type": "minLength",
+              "value": 8,
+              "message": "יש להזין לפחות 8 ספרות"
+            }
+          ]
+        },
+        {
+          "id": "address",
+          "type": "text",
+          "label": "כתובת",
+          "required": true,
+          "validators": [
+            {
+              "type": "minLength",
+              "value": 5,
+              "message": "יש להזין לפחות 5 תווים בכתובת"
+            }
+          ]
+        },
+        {
+          "id": "email",
+          "type": "email",
+          "label": "דוא\"ל",
+          "required": true,
+          "validators": [
+            {
+              "type": "regex",
+              "value": "^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$",
+              "message": "יש להזין כתובת אימייל תקינה"
+            }
+          ]
+        }
       ]
     },
     {
       "title": "פרטי איש קשר",
       "fields": [
-        { "id": "contactName", "type": "text", "label": "שם איש קשר", "required": true },
-        { "id": "contactPhone", "type": "text", "label": "טלפון איש קשר", "required": true },
-        { "id": "contactEmail", "type": "email", "label": "דוא\"ל איש קשר", "required": true }
+        {
+          "id": "contactName",
+          "type": "text",
+          "label": "שם איש קשר",
+          "required": true,
+          "validators": [
+            {
+              "type": "regex",
+              "value": "^[א-תa-zA-Z\\s]+$",
+              "message": "שם איש קשר חייב להכיל אותיות בלבד"
+            }
+          ]
+        },
+        {
+          "id": "contactPhone",
+          "type": "text",
+          "label": "טלפון איש קשר",
+          "required": true,
+          "validators": [
+            {
+              "type": "regex",
+              "value": "^\\d{10}$",
+              "message": "מספר טלפון חייב להכיל בדיוק 10 ספרות"
+            }
+          ]
+        },
+        {
+          "id": "contactEmail",
+          "type": "email",
+          "label": "דוא\"ל איש קשר",
+          "required": true,
+          "validators": [
+            {
+              "type": "regex",
+              "value": "^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$",
+              "message": "יש להזין כתובת אימייל תקינה"
+            }
+          ]
+        }
       ]
     },
     {
@@ -43,20 +128,24 @@
       ]
     },
     {
-      "title": "סיום",
-      "fields": [
-        {
-          "type": "button-group",
-          "config": {
-            "submitId": "submitButton",
-            "submitLabel": "אישור",
-            "submitOnclick": "scrollToTopBeforeSubmit()",
-            "cancelId": "cancelButton",
-            "cancelLabel": "ביטול"
-          }
-        }
-      ]
+  "title": "סיום",
+  "fields": [
+    {
+      "id": "cancelButton",
+      "type": "button-custom",
+      "label": "ביטול",
+      "class": "btn btn-cancel",
+      "onclick": "google.script.host.close()"
+    },
+    {
+      "id": "submitButton",
+      "type": "button-custom",
+      "label": "אישור",
+      "class": "btn btn-submit",
+      "onclick": "scrollToTopBeforeSubmit()"
     }
   ]
+  }
+ ]
 }
 </script>

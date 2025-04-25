@@ -1,4 +1,4 @@
-/* 🌐 סגנון בסיסי של הדף */
+/* 🌐 בסיס */
 body {
   font-family: Arial, sans-serif;
   direction: rtl;
@@ -11,28 +11,26 @@ body {
   margin: 0;
 }
 
-/* 📦 מיכל הטופס המרכזי */
+/* 📦 טופס */
 .form-container {
   background: #ffffff;
   padding: 28px 32px;
   border-radius: 14px;
   width: 420px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   text-align: right;
   transition: all 0.3s ease;
 }
 
-/* 🧠 כותרת קבועה בראש הטופס (H1 למשל) */
+/* 🧠 כותרות */
 .main-form-heading {
   font-size: 28px;
   font-weight: bold;
   text-align: center;
   color: #1e3a8a;
-  margin-bottom: 16px;
-  margin-top: 0;
+  margin: 0 0 16px;
 }
 
-/* 🧩 כותרת טופס דינאמית מתוך הסכמה */
 #form-title {
   text-align: center;
   font-size: 22px;
@@ -41,7 +39,6 @@ body {
   color: #198754;
 }
 
-/* 🧩 כותרות של מקטעים (sections) */
 .section-title {
   text-align: center;
   font-weight: bold;
@@ -52,22 +49,32 @@ body {
   padding-bottom: 5px;
 }
 
-/* 🧱 קבוצות שדות טופס */
+/* 🧾 שדות */
 .form-group {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
-label {
+label,
+.form-label {
   font-weight: 600;
   width: 30%;
   color: #1e3a8a;
+  padding-top: 6px;
+  text-align: right;
 }
 
-input, select {
-  width: 65%;
+.field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 70%;
+}
+
+input,
+select {
+  width: 100%;
   padding: 8px 10px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -77,30 +84,45 @@ input, select {
   transition: border-color 0.2s ease;
 }
 
-/* 🎯 שדות בעת פוקוס */
-input:focus, select:focus {
+input:focus,
+select:focus {
   border-color: #3b82f6;
   outline: none;
 }
 
-/* 🔒 שדות לקריאה בלבד */
 input[readonly] {
   background-color: #e6f4ea;
   cursor: not-allowed;
 }
 
-/* 🧼 ניקוי אוטומטי של דפדפנים */
-input::-ms-clear,
-input::-ms-reveal {
+/* ⚠️ שגיאות */
+.field-error {
+  color: #d93025;
+  font-size: 0.8em;
+  font-weight: 500;
+  direction: rtl;
+  line-height: 1.4;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.field-error[style*="display: none"] {
+  opacity: 0;
+}
+
+.error-message-global {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-weight: bold;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+  text-align: center;
   display: none;
 }
 
-input::after,
-input::before {
-  display: none !important;
-}
-
-/* 🌀 שכבת טעינה שמופיעה מעל הטופס */
+/* 🌀 טעינה */
 .loading-overlay {
   position: absolute;
   inset: 0;
@@ -114,7 +136,6 @@ input::before {
   text-align: center;
 }
 
-/* 🌀 תוכן הטעינה */
 .loading-content {
   display: flex;
   align-items: center;
@@ -122,7 +143,6 @@ input::before {
   color: #333;
 }
 
-/* 🔄 אנימציית הספינר */
 .spinner {
   display: inline-block;
   width: 16px;
@@ -139,7 +159,7 @@ input::before {
   100% { transform: rotate(360deg); }
 }
 
-/* 🔽 כפתור גלילה צף לתחתית הטופס */
+/* 🔽 גלילה */
 .scroll-to-submit-wrapper {
   position: sticky;
   bottom: 0;
@@ -167,13 +187,7 @@ input::before {
   background-color: #2563eb;
 }
 
-/* 🎛️ כפתורים בתחתית */
-.button-container {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
-}
-
+/* 🎛️ כפתורים */
 button {
   padding: 10px 14px;
   font-size: 14px;
@@ -185,7 +199,6 @@ button {
   transition: background-color 0.3s ease;
 }
 
-/* 🟢 כפתור אישור */
 #submitButton {
   background-color: #10b981;
   color: white;
@@ -200,7 +213,6 @@ button {
   cursor: not-allowed;
 }
 
-/* 🔴 כפתור ביטול */
 #cancelButton {
   background-color: #ef4444;
   color: white;
@@ -209,16 +221,11 @@ button {
 #cancelButton:hover {
   background-color: #dc2626;
 }
-/* 🔴 הודעת שגיאה כללית בראש הטופס */
-.error-message-global {
-  background-color: #f8d7da;
-  color: #721c24;
-  padding: 12px;
-  margin-bottom: 16px;
-  font-weight: bold;
-  border: 1px solid #f5c6cb;
-  border-radius: 6px;
-  text-align: center;
-  display: none;
-}
 
+/* ✅ עיצוב ייעודי לכפתורי סיום */
+.section-title + .btn,
+button.btn + button.btn {
+  width: 48%;
+  display: inline-block;
+  margin-right: 2%;
+}

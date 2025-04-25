@@ -1,53 +1,76 @@
 /**
  * פונקציה 001: handleFormData
  * 
- * 📦 פונקציה מרכזית לטעינת נתונים שהתקבלו מהשרת אל תוך טופס דינאמי.
+ * 📦 מטרה:
+ * טעינת נתונים שהתקבלו מהשרת אל תוך טופס דינאמי מסוג "לקוח חדש".
+ * תומכת באכלוס שדות, שמירת נתוני מערכת, וטעינת מקורות מידע לרשימות.
+ * הולידציה מבוססת סכמה בלבד – ללא חיבורים ידניים.
  * 
  * 📌 שלבי פעולה:
- * 1️⃣ בדיקת תקינות כללית של אובייקט הנתונים.
- * 2️⃣ מילוי שדות מערכתיים (מזהים, תאריכים, שם פרויקט).
- * 3️⃣ שמירת רשימת לקוחות קיימים במשתנה גלובלי.
- * 4️⃣ טעינת מקבלי עמלה לרשימת בחירה ועדכון שדות עמלה.
- * 5️⃣ בדיקה האם ניתן להפעיל את הטופס.
- * 6️⃣ הצגת הודעות שגיאה במקרה של תקלה.
+ * 1️⃣ בדיקה שהאובייקט שהתקבל מהשרת קיים ותקין.
+ * 2️⃣ בדיקת שלמות הנתונים (validateNewCustomerFormData).
+ * 3️⃣ מילוי שדות מערכתיים (תאריך, מזהים וכו').
+ * 4️⃣ טעינת רשימת לקוחות לתוך FORM_CONTEXT לצורך ולידציה ייחודיות.
+ * 5️⃣ טעינת מקבלי עמלות ל־FORM_CONTEXT והפעלת סלקט.
+ * 6️⃣ חיבור הולידציה דינאמית לשדות מתוך הסכמה – לאחר טעינת נתונים.
+ * 7️⃣ הסרת שכבת טעינה.
+ * 8️⃣ טיפול בשגיאות כלליות.
  * 
  * @param {Object} data - אובייקט הנתונים שהתקבל מ־Google Apps Script
  */
 function handleFormData(data) {
-  console.log("📡 [handleFormData] ▶ התחלת עיבוד נתונים שהתקבלו מהשרת...");
+  console.log("📡 [handleFormData] ▶ התחלת עיבוד נתונים מהשרת...");
 
   try {
-    // שלב 1️⃣ - בדיקת תקינות כללית
+    // שלב 1️⃣ – בדיקת תקינות הנתונים
     if (!data || typeof data !== "object") {
-      console.error("❌ [handleFormData] אובייקט הנתונים ריק או לא תקין:", data);
-      showGlobalErrorMessage("❌ שגיאה בטעינת הנתונים – נסה לרענן את הדף.");
+      console.error("❌ [handleFormData] אובייקט הנתונים לא תקין או ריק:", data);
+      updateLoadingOverlayText("❌ שגיאה בטעינת הנתונים – נסה לרענן את הדף.");
       return;
     }
 
-    // שלב 2️⃣ - מילוי שדות מערכתיים
-    fillSystemFields(data.generatedFields);
-
-    // שלב 3️⃣ - שמירת רשימת לקוחות קיימים
-    populateCustomerList(data.existingCustomers);
-
-    // שלב 4️⃣ - טעינת רשימת מקבלי העמלה
-    initializeCommissionSelector(data.commissionRecipients);
-
-    // שלב 5️⃣ - בדיקה סופית
-    const allDataReady = validateInitialData(data);
-    if (allDataReady) {
-      enableForm();
-      console.log("✅ [handleFormData] כל הנתונים נקלטו והטופס מוכן לשימוש.");
-    } else {
-      console.warn("⚠️ [handleFormData] חלק מהנתונים חסרים - חסימה זמנית של הטופס.");
-      showGlobalErrorMessage("⚠️ שגיאה בטעינת נתונים - נסה לרענן את הטופס.");
+    // שלב 2️⃣ – ולידציה של שלמות הנתונים
+    const allDataReady = validateNewCustomerFormData(data);
+    if (!allDataReady) {
+      console.warn("⚠️ [handleFormData] ולידציה נכשלה – נתונים חסרים או לא תקינים.");
+      updateLoadingOverlayText("⚠️ הנתונים אינם שלמים – לא ניתן להמשיך.");
+      return;
     }
 
+    // שלב 3️⃣ – מילוי שדות מערכתיים
+    console.log("🧩 [handleFormData] מילוי שדות מערכתיים...");
+    fillSystemFields(data.generatedFields);
+
+    // שלב 4️⃣ – טעינת רשימת לקוחות
+    console.log("📋 [handleFormData] טעינת רשימת לקוחות...");
+    populateCustomerList(data.existingCustomers);
+
+    // שלב 5️⃣ – טעינת מקבלי עמלות
+    console.log("💸 [handleFormData] טעינת מקבלי עמלות...");
+    FORM_CONTEXT.dataSources.commissionRecipients = data.commissionRecipients || [];
+    initializeCommissionSelector();
+
+    // שלב 6️⃣ – חיבור הולידציה מתוך הסכמה (רק אחרי טעינת נתונים)
+    const schema = loadSchemaFromDOM("schema-dynamic");
+    if (schema) {
+      const flatSchema = flattenSchemaToFields(schema);
+      attachValidatorsFromSchema(flatSchema);
+    } else {
+      console.warn("⚠️ [handleFormData] לא ניתן לטעון סכמה ל־attachValidatorsFromSchema");
+    }
+
+    // שלב 7️⃣ – סיום
+    hideLoadingOverlay();
+    console.log("✅ [handleFormData] הנתונים נקלטו והטופס מוכן לשימוש.");
+
   } catch (error) {
-    console.error("❌ [handleFormData] שגיאה כללית בעת טעינת הנתונים:", error);
-    showGlobalErrorMessage("❌ שגיאה כללית. נסה לרענן את הדף.");
+    // שלב 8️⃣ – טיפול בשגיאות כלליות
+    console.error("❌ [handleFormData] שגיאה כללית בעת עיבוד הנתונים:", error);
+    updateLoadingOverlayText("❌ שגיאה כללית – נסה לרענן את הדף.");
   }
 }
+
+
 /**
  * פונקציה 002: fillSystemFields
  * 
@@ -96,72 +119,83 @@ function fillSystemFields(fields) {
   }
 }
 /**
- * פונקציה 003: populateCustomerList
+ * 🧠 פונקציה 003: populateCustomerList
  * 
- * 👥 טוענת את רשימת הלקוחות הקיימים למשתנה גלובלי לשימוש בטופס.
- * 
+ * 🎯 מטרה:
+ * טוענת את רשימת הלקוחות הקיימים ומסדרת אותם לפי סדר א״ב לשימוש עתידי.
+ * לאחר המיון – הרשימה נשמרת ב־FORM_CONTEXT.validation.customerList לצורך בדיקת ייחודיות.
+ *
  * 📌 שלבי פעולה:
- * 1️⃣ בודקת אם הנתונים שהתקבלו מהשרת הם מערך תקין.
- * 2️⃣ ממיינת את הלקוחות לפי סדר א״ב בעברית.
- * 3️⃣ שומרת את הרשימה במשתנה גלובלי `existingCustomers`.
- * 4️⃣ רושמת את הרשימה ללוג.
- * 
- * @param {Array} customers - מערך של שמות לקוחות מהשרת.
+ * 1️⃣ בדיקה האם הנתונים תקינים (Array)
+ * 2️⃣ נרמול ומיון הרשימה
+ * 3️⃣ שמירה בתוך FORM_CONTEXT.validation
+ * 4️⃣ רישום ללוג
+ *
+ * @param {Array<string>} customers - רשימת לקוחות מהשרת
  */
 function populateCustomerList(customers) {
-  console.log("📥 [populateCustomerList] התחלת טעינת רשימת לקוחות...");
+  console.log("📥 [populateCustomerList] ▶ התחלת טעינת רשימת לקוחות...");
 
   try {
+    // שלב 1️⃣ – בדיקת תקינות
     if (!Array.isArray(customers)) {
       console.warn("⚠️ [populateCustomerList] הנתונים שהתקבלו אינם מערך תקין:", customers);
       return;
     }
 
-    customers.sort((a, b) => a.trim().localeCompare(b.trim(), "he", { sensitivity: "base" }));
+    // שלב 2️⃣ – נרמול ומיון
+    const sorted = customers
+      .map(name => typeof name === "string" ? name.trim() : name?.name?.trim())
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, "he", { sensitivity: "base" }));
 
-    existingCustomers = customers;
+    // שלב 3️⃣ – שמירה בקונטקסט
+    FORM_CONTEXT.validation.customerList = sorted;
 
-    console.log("✅ [populateCustomerList] רשימת הלקוחות נטענה ומוינה:", existingCustomers);
+    // שלב 4️⃣ – לוג
+    console.log("✅ [populateCustomerList] רשימת הלקוחות נשמרה ל־FORM_CONTEXT:", FORM_CONTEXT.validation.customerList);
 
   } catch (error) {
-    console.error("❌ [populateCustomerList] שגיאה כללית:", error);
+    console.error("❌ [populateCustomerList] שגיאה כללית בעת עיבוד רשימת לקוחות:", error);
   }
 }
 /**
- * פונקציה 004: initializeCommissionSelector
- * 
- * 💼 מאכלסת את רשימת מקבלי העמלה לתוך אלמנט select בטופס, ומגדירה האזנה לעדכון שדות נלווים.
- * 
+ * 🧠 פונקציה 004: initializeCommissionSelector
+ *
+ * 🎯 מטרה:
+ * מאכלסת את אלמנט הבחירה של מקבלי העמלה (`select`) מתוך הנתונים שב־FORM_CONTEXT.
+ * בעת בחירת מקבל עמלה – ממלאת אוטומטית את אחוזי העמלה ומספר החודשים.
+ *
  * 📌 שלבי פעולה:
- * 1️⃣ בודקת אם האלמנטים הדרושים קיימים (select + שדות עמלה).
- * 2️⃣ מאפסת את התוכן הקיים ויוצרת אפשרות ברירת מחדל.
- * 3️⃣ מוסיפה כל מקבל עמלה כ־<option>.
- * 4️⃣ מאזינה לשינוי ערך ובוחרת את אחוז העמלה והחודשים מתוך מקבל העמלה שנבחר.
- * 5️⃣ רושמת לוגים מלאים.
- * 
- * @param {Array<{name: string, rate: number, months: number}>} recipients - מערך מקבלי העמלה מהשרת.
+ * 1️⃣ איתור אלמנטי DOM: select, אחוז, חודשים
+ * 2️⃣ איפוס הרשימה והוספת אפשרות ברירת מחדל
+ * 3️⃣ יצירת אופציות מתוך FORM_CONTEXT.dataSources.commissionRecipients
+ * 4️⃣ חיבור מאזין שמעדכן ערכים לפי הבחירה
+ * 5️⃣ רישום ללוג
  */
-function initializeCommissionSelector(recipients) {
-  console.log("📥 [initializeCommissionSelector] טעינת רשימת מקבלי עמלה...");
+function initializeCommissionSelector() {
+  console.log("📥 [initializeCommissionSelector] ▶ טעינת מקבלי עמלות מה־FORM_CONTEXT");
 
   try {
+    // שלב 1️⃣ – איתור אלמנטים
     const select = document.getElementById("commissionRecipient");
     const rateField = document.getElementById("commissionRate");
     const monthsField = document.getElementById("commissionMonths");
 
     if (!select || !rateField || !monthsField) {
-      console.warn("⚠️ [initializeCommissionSelector] אחד מהשדות commissionRecipient / commissionRate / commissionMonths לא נמצא ב־DOM.");
+      console.warn("⚠️ [initializeCommissionSelector] אחד האלמנטים לא נמצא ב־DOM");
       return;
     }
 
-    // שלב 1️⃣: איפוס הרשימה והוספת ברירת מחדל
+    // שלב 2️⃣ – איפוס והרשאה לברירת מחדל
     select.innerHTML = "";
     const defaultOption = document.createElement("option");
     defaultOption.value = "";
     defaultOption.textContent = "-- ללא מקבל עמלה --";
     select.appendChild(defaultOption);
 
-    // שלב 2️⃣: הוספת כל מקבל לרשימה
+    // שלב 3️⃣ – יצירת אופציות מהרשימה בקונטקסט
+    const recipients = FORM_CONTEXT.dataSources.commissionRecipients || [];
     recipients.forEach(recipient => {
       const option = document.createElement("option");
       option.value = recipient.name;
@@ -169,18 +203,80 @@ function initializeCommissionSelector(recipients) {
       select.appendChild(option);
     });
 
-    // שלב 3️⃣: האזנה לבחירה
+    // שלב 4️⃣ – חיבור מאזין לעדכון אחוז וחודשים
     select.addEventListener("change", () => {
       const selected = select.value;
       const found = recipients.find(r => r.name === selected);
       rateField.value = found ? found.rate : "";
       monthsField.value = found ? found.months : "";
-      console.log(`✅ [initializeCommissionSelector] מקבל עמלה נבחר: ${selected} | אחוז: ${rateField.value} | חודשים: ${monthsField.value}`);
+      console.log(`✅ [initializeCommissionSelector] נבחר: ${selected} | אחוז: ${rateField.value} | חודשים: ${monthsField.value}`);
     });
 
-    console.log("✅ [initializeCommissionSelector] הרשימה נטענה בהצלחה.");
+    // שלב 5️⃣ – סיום
+    console.log("✅ [initializeCommissionSelector] רשימת מקבלי העמלה נטענה בהצלחה");
 
   } catch (error) {
     console.error("❌ [initializeCommissionSelector] שגיאה כללית:", error);
   }
 }
+/**
+ * 🧠 פונקציה 005: validateNewCustomerFormData
+ *
+ * 🎯 מטרת הפונקציה:
+ * בדיקת תקינות ושלמות של אובייקט הנתונים המתקבל מהשרת עבור טופס 'לקוח חדש'.
+ * מונעת המשך הרצת הטופס אם חסרים נתוני ליבה נדרשים.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ בדיקה שהאובייקט הראשי קיים ותקין (Object)
+ * 2️⃣ בדיקה שכל שדות המערכת החיוניים קיימים
+ * 3️⃣ בדיקה שקיימת רשימת לקוחות קיימים מסוג Array
+ * 4️⃣ רישום לוגים על תוצאות כל שלב
+ * 5️⃣ החזרת true אם כל התנאים מתקיימים, אחרת false
+ *
+ * @param {Object} data - הנתונים שהתקבלו מהשרת
+ * @returns {boolean} האם הנתונים תקינים וניתן להמשיך בטעינה
+ */
+function validateNewCustomerFormData(data) {
+  console.log("🧪 [validateNewCustomerFormData] ▶ התחלת בדיקת נתונים מהשרת");
+
+  try {
+    // שלב 1️⃣ – בדיקה כללית לאובייקט
+    if (!data || typeof data !== "object") {
+      console.error("❌ [validateNewCustomerFormData] הנתון שהתקבל אינו אובייקט:", data);
+      return false;
+    }
+
+    const fields = data.generatedFields;
+
+    // שלב 2️⃣ – בדיקת שדות מערכת חיוניים
+    const hasRequiredFields =
+      !!fields?.creationDate &&
+      !!fields?.customerID &&
+      !!fields?.entryDate &&
+      !!fields?.projectID;
+
+    if (!hasRequiredFields) {
+      console.warn("⚠️ [validateNewCustomerFormData] שדות מערכתיים חסרים:", fields);
+    } else {
+      console.log("✅ [validateNewCustomerFormData] כל שדות המערכת קיימים");
+    }
+
+    // שלב 3️⃣ – בדיקת רשימת לקוחות
+    const hasCustomerList = Array.isArray(data.existingCustomers);
+    if (!hasCustomerList) {
+      console.warn("⚠️ [validateNewCustomerFormData] רשימת לקוחות אינה תקפה:", data.existingCustomers);
+    } else {
+      console.log(`✅ [validateNewCustomerFormData] קיימת רשימת לקוחות (${data.existingCustomers.length})`);
+    }
+
+    // שלב 4️⃣ – סיכום
+    const result = hasRequiredFields && hasCustomerList;
+    console.log(`📊 [validateNewCustomerFormData] תוצאת בדיקה כוללת: ${result ? "✅ תקין" : "❌ חסר"}`);
+    return result;
+
+  } catch (error) {
+    console.error("❌ [validateNewCustomerFormData] שגיאה כללית בבדיקת נתונים:", error);
+    return false;
+  }
+}
+

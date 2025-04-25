@@ -1,0 +1,71 @@
+/**
+ * פונקציה 101: showFieldError
+ *
+ * 🧾 מטרה:
+ * הצגת הודעת שגיאה ויזואלית מתחת לשדה בטופס, לפי מזהה השדה (ID).
+ * משמשת להצגת שגיאות ולידציה (כמו כפילות, חובה, פורמט).
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ מאתרת אלמנט הודעת שגיאה לפי data-error-for.
+ * 2️⃣ אם קיים – מעדכנת את התוכן ומציגה אותו.
+ * 3️⃣ אם לא קיים – נרשם לוג אך לא נזרקת שגיאה.
+ *
+ * @param {string} fieldId - מזהה שדה ה־input שאליו מוצמדת השגיאה.
+ * @param {string} message - טקסט שגיאה להצגה למשתמש.
+ */
+function showFieldError(fieldId, message) {
+  console.log(`⚠️ [showFieldError] נסיון להציג שגיאה בשדה '${fieldId}'`);
+
+  try {
+    // 1️⃣ איתור קונטיינר השגיאה לפי data-error-for
+    const errorContainer = document.querySelector(`[data-error-for="${fieldId}"]`);
+    if (!errorContainer) {
+      console.warn(`⚠️ [showFieldError] לא נמצא אלמנט שגיאה לשדה '${fieldId}'`);
+      return;
+    }
+
+    // 2️⃣ עדכון התוכן והצגה
+    errorContainer.textContent = message;
+    errorContainer.style.display = "block";
+    console.log(`✅ [showFieldError] השגיאה הופיעה בשדה '${fieldId}'`);
+
+  } catch (error) {
+    console.error(`❌ [showFieldError] שגיאה פנימית בטיפול בשגיאה בשדה '${fieldId}':`, error);
+  }
+}
+
+
+/**
+ * פונקציה 102: clearFieldError
+ *
+ * 🧼 מטרה:
+ * ניקוי שגיאה ויזואלית משדה בטופס – מסירה טקסט והסתרת אלמנט השגיאה.
+ * משמשת להסרת שגיאות לאחר תיקון על ידי המשתמש.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ מאתרת את קונטיינר השגיאה לפי data-error-for.
+ * 2️⃣ אם קיים – מוחקת טקסט ומסתירה אותו.
+ * 3️⃣ אם לא קיים – נרשם לוג שקט.
+ *
+ * @param {string} fieldId - מזהה שדה ה־input שממנו ננקה את השגיאה.
+ */
+function clearFieldError(fieldId) {
+  console.log(`🧼 [clearFieldError] נסיון להסיר שגיאה משדה '${fieldId}'`);
+
+  try {
+    // 1️⃣ איתור אלמנט השגיאה
+    const errorContainer = document.querySelector(`[data-error-for="${fieldId}"]`);
+    if (!errorContainer) {
+      console.warn(`⚠️ [clearFieldError] לא נמצא אלמנט שגיאה לשדה '${fieldId}'`);
+      return;
+    }
+
+    // 2️⃣ ניקוי התוכן והסתרה
+    errorContainer.textContent = "";
+    errorContainer.style.display = "none";
+    console.log(`✅ [clearFieldError] השגיאה הוסרה משדה '${fieldId}'`);
+
+  } catch (error) {
+    console.error(`❌ [clearFieldError] שגיאה פנימית בניקוי שדה '${fieldId}':`, error);
+  }
+}
