@@ -1,3 +1,14 @@
+/* 🚫 ביטול רקע כחול אוטומטי משדות autocomplete */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  background-color: #ffffff !important;
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  transition: background-color 0s ease-in-out 0s;
+}
+
 /* 🌐 בסיס */
 body {
   font-family: Arial, sans-serif;
@@ -11,7 +22,13 @@ body {
   margin: 0;
 }
 
-/* 📦 טופס */
+/* 🧩 מעטפת כללית לטופס ולכפתור הגלילה */
+.form-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
 .form-container {
   background: #ffffff;
   padding: 28px 32px;
@@ -20,6 +37,9 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   text-align: right;
   transition: all 0.3s ease;
+  max-height: 80vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* 🧠 כותרות */
@@ -160,13 +180,17 @@ input[readonly] {
 }
 
 /* 🔽 גלילה */
+
 .scroll-to-submit-wrapper {
   position: sticky;
   bottom: 0;
-  background: #ffffff;
+  background: transparent; /* ✅ לא לבן יותר */
+  border-top: none;
   padding: 12px 0;
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 10px;
   z-index: 10;
   border-top: 1px solid #e5e7eb;
 }
@@ -175,17 +199,29 @@ input[readonly] {
   background-color: #3b82f6;
   color: white;
   font-size: 14px;
-  padding: 10px 18px;
+  padding: 10px 16px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: bold;
+  width: 49%;              /* 🆕 הגדלה מ־45% */
+  height: 48px;
+  white-space: nowrap;     /* ❗ שורה אחת בלבד */
+  overflow: hidden;
+  text-overflow: clip;     /* ❗ לא "..." */
+  text-align: center;
   transition: background-color 0.3s ease;
 }
 
-.scroll-to-submit-wrapper button:hover {
+.scroll-to-submit-wrapper button:hover:enabled {
   background-color: #2563eb;
 }
+
+.scroll-to-submit-wrapper button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
 
 /* 🎛️ כפתורים */
 button {

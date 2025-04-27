@@ -2,161 +2,213 @@
  * 🧠 משתנה גלובלי: FORM_CONTEXT
  *
  * 🎯 מטרת המשתנה:
- * אובייקט מרכזי לניהול כל הנתונים, הרשימות, ערכי ברירת מחדל, והקשרים של הטופס הנוכחי.
+ * אובייקט מרכזי לניהול כל ה-state של טופס דינאמי:
+ * נתונים חיצוניים, מידע מוקדם מהשרת, מידע פנימי, ולוגיקת טופס.
  *
  * 📌 מבנה פנימי:
- * - validation: רשימות לבדיקה (למשל, לקוחות קיימים)
- * - dataSources: מקורות ל-selectים וערכי ברירת מחדל
- * - preloaded: מידע שהוזן מראש כמו זמן שרת או משתמש נוכחי
- * - formType: סוג הטופס (למשל: "לקוח חדש")
- * - local: נתונים מקומיים בלעדיים לטופס הספציפי
+ * - validation       : נתונים לבדיקה (כגון כפילויות)
+ * - dataSources      : רשימות תלויות (כמו מקבלי עמלה)
+ * - preloaded        : מידע מהשרת (תאריך, מזהים)
+ * - formType         : שם סוג הטופס
+ * - local            : נתונים מקומיים שאינם רלוונטיים לטפסים אחרים
+ * - schema           : אובייקט הסכמה המלאה (כולל sections)
+ * - flatFields       : מפת שדות שטוחה לפי מזהי שדות
  */
 const FORM_CONTEXT = {
   validation: {},
   dataSources: {},
   preloaded: {},
   formType: "",
-  local: {}
+  local: {},
+  schema: null,        // ✳️ נטען ב-DOMContentLoaded מתוך תגית <script>
+  flatFields: {}       // ✳️ נוצר מ־schema דרך flattenSchemaToFields
 };
 
 /**
  * 🧠 פונקציה: flattenSchemaToFields
  *
- * 🎯 מטרת הפונקציה:
- * המרת סכמה היררכית (מבוססת sections) למבנה שטוח של שדות לפי מזהה.
- * שימושי לחיבור ולידציה או גישה ישירה לשדות.
+ * 🎯 מטרה:
+ * המרת סכמה היררכית (מבוססת sections) למבנה שטוח של שדות לפי מזהה שדה (`id`).
+ *
+ * ⚠️ הנחה מוקדמת:
+ * הפונקציה מניחה כי `FORM_CONTEXT.schema` קיים ותקין לפני הקריאה.
+ * באחריות הקריאה לוודא זאת. אין בדיקת תקינות פנימית כאן.
  *
  * 📌 שלבי פעולה:
- * 1️⃣ מעבר על כל המקטעים (`sections`)
- * 2️⃣ מעבר על כל `fields` בכל מקטע
- * 3️⃣ הוספת כל שדה לאובייקט שטוח לפי `id`
- * 
- * @param {Object} schema - אובייקט סכמה מלא כולל sections
- * @returns {Object} - אובייקט שטוח עם שדות לפי id
+ * 1️⃣ מעבר על כל המקטעים (`sections`) בסכמה.
+ * 2️⃣ מעבר על כל `fields` בכל מקטע.
+ * 3️⃣ הוספת כל שדה חוקי (id קיים) לאובייקט שטוח.
+ * 4️⃣ החזרת האובייקט השטוח לשימוש חיצוני.
+ *
+ * @returns {Object} - מפת שדות שטוחה לפי מזהי שדות
  */
-function flattenSchemaToFields(schema) {
+function flattenSchemaToFields() {
   console.log("📦 [flattenSchemaToFields] ▶ התחלת המרת הסכמה למבנה שטוח");
 
+  // שלב 1️⃣ – התחלה
   const result = {};
 
-  // שלב 1️⃣ – מעבר על כל המקטעים
-  schema.sections.forEach(section => {
-    console.log(`🔍 [flattenSchemaToFields] מקטע: ${section.title}`);
+  // שלב 2️⃣ – מעבר על מקטעים
+  FORM_CONTEXT.schema.sections.forEach(section => {
+    console.log(`🔍 [2️⃣] עיבוד מקטע: '${section.title}'`);
 
-    // שלב 2️⃣ – מעבר על שדות
+    // שלב 3️⃣ – מעבר על השדות במקטע
     (section.fields || []).forEach(field => {
       if (field.id) {
-        // שלב 3️⃣ – הוספה למבנה השטוח
         result[field.id] = field;
-        console.log(`✅ [flattenSchemaToFields] שדה '${field.id}' נוסף למבנה השטוח`);
+        console.log(`✅ [3️⃣] שדה '${field.id}' נוסף למבנה השטוח`);
+      } else {
+        console.warn("⚠️ [3️⃣] שדה ללא מזהה (id) – דילוג");
       }
     });
   });
 
-  console.log("✅ [flattenSchemaToFields] סיום עיבוד סכמה");
+  // שלב 4️⃣ – החזרת התוצאה
+  console.log("🏁 [flattenSchemaToFields] סיום עיבוד הסכמה");
   return result;
 }
+
 /**
  * 🧠 פונקציה: attachValidatorsFromSchema
  *
- * 🎯 מטרת הפונקציה:
- * חיבור ולידציה חיה לכל שדה בטופס, בהתאם להגדרות שצוינו בסכמה.
- * מתעלמת אוטומטית משדות מסוג כפתור (button, button-group וכו').
+ * 🎯 מטרה:
+ * לחבר ולידציה חיה לכל שדה בטופס לפי הסכמה,
+ * להשבית זמנית את כפתור השליחה בעת שינוי בשדה חובה,
+ * לשמור על הודעות שגיאה בצורה חכמה,
+ * ולהבטיח גלילה חכמה לשדה הבא בעת מעבר.
+ *
+ * ⚠️ הנחות מוקדמות:
+ * - `FORM_CONTEXT.flatFields` קיים ותקין לפני קריאה לפונקציה.
  *
  * 📌 שלבי פעולה:
- * 1️⃣ מעבר על כל השדות מהסכמה השטוחה
- * 2️⃣ דילוג על שדות שאינם ניתנים לוולידציה (כפתורים)
- * 3️⃣ חיבור הולידטורים והאזנה לאירועים
- * 4️⃣ עדכון UI בהתאם לתוצאה
- *
- * @param {Object<string, Object>} flatSchema - סכמה שטוחה: מיפוי של שדות לפי מזהה
+ * 1️⃣ טעינת שדות מתוך `FORM_CONTEXT.flatFields`.
+ * 2️⃣ מעבר על כל שדה קלט.
+ * 3️⃣ דילוג על שדות מסוג כפתור.
+ * 4️⃣ בניית ולידטורים לכל שדה.
+ * 5️⃣ חיבור מאזיני input, blur ו-focus:
+ *    - input: ולידציה מקומית בלבד + השבתת כפתור זמנית אם חובה.
+ *    - blur: ולידציה מקומית + בדיקה כללית.
+ *    - focus: ניקוי הודעת שגיאה אם השדה תקין + גלילה חכמה.
  */
-function attachValidatorsFromSchema(flatSchema) {
+function attachValidatorsFromSchema() {
   console.log("🛠️ [attachValidatorsFromSchema] ▶ התחלת חיבור הולידציה מהסכמה");
 
-  Object.entries(flatSchema).forEach(([fieldId, fieldSchema]) => {
-    console.log(`🔍 [attachValidatorsFromSchema] שדה: '${fieldId}'`);
+  // שלב 1️⃣ – טעינת שדות שטוחים מהקונטקסט
+  const flatFields = FORM_CONTEXT.flatFields;
 
-    // שלב 1️⃣ – דילוג על שדות שאינם שדות קלט
+  if (!flatFields || typeof flatFields !== "object") {
+    console.error("❌ [1️⃣] flatFields לא קיים או לא תקין בקונטקסט");
+    return;
+  }
+
+  // שלב 2️⃣ – מעבר על כל השדות
+  Object.entries(flatFields).forEach(([fieldId, fieldSchema]) => {
+    console.log(`🔍 [2️⃣] טיפול בשדה: '${fieldId}'`);
+
+    // שלב 3️⃣ – דילוג על שדות מסוג כפתור
     const isButtonType = typeof fieldSchema.type === "string" && fieldSchema.type.includes("button");
     if (isButtonType) {
-      console.log(`ℹ️ [attachValidatorsFromSchema] דילוג על שדה כפתור '${fieldId}'`);
+      console.log(`ℹ️ [3️⃣] דילוג על שדה כפתור '${fieldId}'`);
       return;
     }
 
-    // שלב 2️⃣ – איתור האלמנט והקונטיינר לשגיאה
+    // שלב 4️⃣ – איתור אלמנט קלט ואלמנט הודעת שגיאה
     const field = document.getElementById(fieldId);
     const errorContainer = document.querySelector(`[data-error-for="${fieldId}"]`);
     if (!field) {
-      console.warn(`⚠️ [attachValidatorsFromSchema] השדה '${fieldId}' לא נמצא ב־DOM`);
+      console.warn(`⚠️ [4️⃣] השדה '${fieldId}' לא נמצא ב־DOM`);
       return;
     }
 
-    // שלב 3️⃣ – בניית הולידטורים
+    // שלב 5️⃣ – בניית הולידטורים
     const validators = buildValidators(fieldSchema);
     if (!validators.length) {
-      console.log(`ℹ️ [attachValidatorsFromSchema] אין ולידטורים לשדה '${fieldId}'`);
+      console.log(`ℹ️ [5️⃣] אין הולידטורים לשדה '${fieldId}'`);
       return;
     }
 
-    // שלב 4️⃣ – חיבור מאזינים
+    // שלב 6️⃣ – חיבור מאזינים
+
+    // 🖊️ input – ולידציה מקומית בלבד + השבתת כפתור זמנית אם מדובר בשדה חובה
     field.addEventListener("input", () => {
       const result = runValidators(field.value, validators);
       updateFieldUI(result, field, errorContainer);
-    });
 
-    field.addEventListener("blur", () => {
-      const result = runValidators(field.value, validators);
-      updateFieldUI(result, field, errorContainer);
-      if (!result.valid) {
-        field.focus();
+      if (fieldSchema.required) {
+        temporarilyDisableSubmitButton();
       }
     });
 
-    field.addEventListener("focus", () => {
-      clearFieldError(errorContainer);
+    // 🔎 blur – ולידציה מקומית + בדיקה כללית לכל הטופס
+    field.addEventListener("blur", () => {
+      const result = runValidators(field.value, validators);
+      updateFieldUI(result, field, errorContainer);
+
+      if (!result.valid) {
+        field.focus();
+      }
+
+      validateRequiredFieldsAndToggleSubmitButton();
     });
 
-    console.log(`✅ [attachValidatorsFromSchema] ולידציה חוברה לשדה '${fieldId}'`);
+    // 🎯 focus – ניקוי הודעת שגיאה אם השדה תקין + גלילה חכמה
+    field.addEventListener("focus", () => {
+      const currentValue = field.value?.trim() ?? "";
+      const currentValidators = buildValidators(fieldSchema);
+      const result = runValidators(currentValue, currentValidators);
+
+      if (result.valid) {
+        clearFieldError(field.id);
+        console.log(`✅ [focus] שדה '${fieldId}' תקין – הודעת שגיאה נמחקה`);
+      } else {
+        console.log(`⚠️ [focus] שדה '${fieldId}' לא תקין – הודעת שגיאה נשארת מוצגת`);
+      }
+
+      // 🌀 גלילה חכמה לשדה
+      scrollFieldIntoView(field);
+    });
+
+    console.log(`✅ [attachValidatorsFromSchema] מאזינים חוברו לשדה '${fieldId}'`);
   });
 
-  console.log("✅ [attachValidatorsFromSchema] סיום חיבור ולידציה לכל השדות");
+  console.log("✅ [attachValidatorsFromSchema] סיום חיבור הולידציה לכל השדות");
 }
+
 
 /**
  * 🧠 פונקציה: buildValidators
  *
- * 🎯 מטרת הפונקציה:
- * יצירת מערך של הולידטורים פונקציונליים לפי הגדרות השדה בסכמה.
+ * 🎯 מטרה:
+ * בניית מערך הולידטורים (בדיקות) לפי ההגדרות של שדה יחיד מתוך הסכמה שטוחה.
  * תומכת בסוגי ולידציה: required, minLength, regex, unique.
  *
  * 📌 שלבי פעולה:
- * 1️⃣ התחלת מערך הולידטורים ריק
- * 2️⃣ בדיקה אם השדה מוגדר כ-required – הוספת בדיקה ריקה
- * 3️⃣ מעבר על מערך validators מותאם אישית בשדה
- * 4️⃣ הוספת הולידטורים לפי סוג: minLength, regex, unique
- * 5️⃣ החזרת מערך הולידטורים לפונקציות המשך
- * 
- * @param {Object} fieldSchema - אובייקט שדה יחיד מתוך סכמה שטוחה
- * @returns {Array<Object>} - מערך הולידטורים בפורמט אחיד
+ * 1️⃣ התחלת מערך הולידטורים ריק.
+ * 2️⃣ הוספת ולידציה חובה אם נדרש (required).
+ * 3️⃣ מעבר על ולידטורים נוספים שהוגדרו לשדה.
+ * 4️⃣ הוספת הולידטורים מסוג minLength / regex / unique.
+ * 5️⃣ החזרת המערך המוכן.
+ *
+ * @param {Object} fieldSchema - אובייקט של שדה יחיד מתוך סכמה שטוחה
+ * @returns {Array<Object>} - מערך הולידטורים לשדה
  */
 function buildValidators(fieldSchema) {
   console.log(`🧪 [buildValidators] ▶ התחלת בניית הולידטורים לשדה '${fieldSchema.id}'`);
 
-  // שלב 1️⃣ – התחלה
+  // שלב 1️⃣ – התחלת מערך הולידטורים
   const validators = [];
 
-  // שלב 2️⃣ – required
+  // שלב 2️⃣ – הוספת חובה אם קיים required
   if (fieldSchema.required) {
     validators.push({
       type: "required",
       validate: val => val.trim() !== "",
       message: "שדה חובה"
     });
-    console.log(`➕ [buildValidators] הולידציה: required`);
+    console.log(`➕ [2️⃣] הולידציה required נוספה`);
   }
 
-  // שלב 3️⃣ – ולידטורים נוספים
+  // שלב 3️⃣ – מעבר על ולידטורים נוספים
   (fieldSchema.validators || []).forEach(rule => {
     switch (rule.type) {
       case "minLength":
@@ -165,7 +217,7 @@ function buildValidators(fieldSchema) {
           validate: val => val.trim().length >= rule.value,
           message: rule.message || `יש להזין לפחות ${rule.value} תווים`
         });
-        console.log(`➕ [buildValidators] minLength (${rule.value})`);
+        console.log(`➕ [3️⃣] הולידציה minLength (${rule.value}) נוספה`);
         break;
 
       case "regex":
@@ -174,13 +226,13 @@ function buildValidators(fieldSchema) {
           validate: val => new RegExp(rule.value).test(val),
           message: rule.message || "הערך אינו תואם לתבנית הנדרשת"
         });
-        console.log(`➕ [buildValidators] regex (${rule.value})`);
+        console.log(`➕ [3️⃣] הולידציה regex (${rule.value}) נוספה`);
         break;
 
       case "unique":
         const list = FORM_CONTEXT.validation?.[rule.list];
         if (!Array.isArray(list)) {
-          console.warn(`⚠️ [buildValidators] הרשימה '${rule.list}' אינה תקפה`);
+          console.warn(`⚠️ [3️⃣] רשימת unique '${rule.list}' אינה תקינה`);
           break;
         }
         validators.push({
@@ -188,84 +240,356 @@ function buildValidators(fieldSchema) {
           validate: val => !list.map(x => x.toLowerCase()).includes(val.trim().toLowerCase()),
           message: rule.message || "הערך כבר קיים במערכת"
         });
-        console.log(`➕ [buildValidators] unique מול רשימה '${rule.list}'`);
+        console.log(`➕ [3️⃣] הולידציה unique מול רשימה '${rule.list}' נוספה`);
         break;
     }
   });
 
   // שלב 5️⃣ – סיום
-  console.log(`✅ [buildValidators] הולידטורים שנוצרו: ${validators.length}`);
+  console.log(`✅ [buildValidators] נבנו ${validators.length} הולידטורים לשדה '${fieldSchema.id}'`);
   return validators;
 }
 
 /**
  * 🧠 פונקציה: runValidators
  *
- * 🎯 מטרת הפונקציה:
- * להריץ את כל הולידטורים של שדה אחד, ולחזיר את תוצאת הבדיקה (האם תקין, ואם לא – הודעה).
- * משמשת בכל קריאה לשדה כדי לדעת אם להציג שגיאה או לא.
+ * 🎯 מטרה:
+ * להריץ את כל הולידטורים של שדה אחד, לפי סדרם, ולהחזיר את תוצאת הבדיקה:
+ * האם הערך תקין? ואם לא – איזו הודעת שגיאה להציג.
  *
  * 📌 שלבי פעולה:
- * 1️⃣ קבלת ערך לבדיקה ומערך הולידטורים
- * 2️⃣ מעבר על כל הולידטור לפי הסדר
- * 3️⃣ הרצה של פונקציית validate()
- * 4️⃣ עצירה בהולידטור הראשון שנכשל
- * 5️⃣ החזרת אובייקט תוצאה כולל תקינות והודעה
+ * 1️⃣ קבלת ערך לבדיקה ומערך הולידטורים.
+ * 2️⃣ מעבר על כל הולידטור ברשימה.
+ * 3️⃣ בדיקה מול פונקציית validate של כל הולידטור.
+ * 4️⃣ עצירה על ההולידטור הראשון שנכשל.
+ * 5️⃣ החזרת תוצאה מתאימה: { valid: true/false, message: string|null }
  *
- * @param {string} value - הערך שנמצא בשדה (input)
- * @param {Array<Object>} validators - מערך הולידטורים מהפונקציה buildValidators
- * @returns {Object} - תוצאה בפורמט: { valid: boolean, message: string|null }
+ * @param {string} value - הערך של השדה לבדיקה (בדרך כלל field.value)
+ * @param {Array<Object>} validators - מערך הולידטורים שהוכנו מראש ע"י buildValidators
+ * @returns {Object} - אובייקט תוצאה: { valid: boolean, message: string|null }
  */
 function runValidators(value, validators) {
-  console.log("🔎 [runValidators] ▶ התחלת הרצת הולידטורים");
+  console.log("🔎 [runValidators] ▶ התחלת הרצת ולידציה על ערך:", value);
 
-  // שלב 1️⃣ – קבלת הערך והמערך
-  const inputValue = value.trim();
+  try {
+    // שלב 1️⃣ – ניקוי הערך
+    const inputValue = value.trim();
 
-  // שלב 2️⃣ – מעבר על הולידטורים
-  for (let validator of validators) {
-    // שלב 3️⃣ – הרצת פונקציית בדיקה
-    const passed = validator.validate(inputValue);
+    // שלב 2️⃣ – מעבר על הולידטורים
+    for (let validator of validators) {
+      // שלב 3️⃣ – הרצת פונקציית בדיקה
+      const passed = validator.validate(inputValue);
 
-    // שלב 4️⃣ – עצירה אם נכשל
-    if (!passed) {
-      console.warn(`❌ [runValidators] כשל בוולידטור: ${validator.type} – ${validator.message}`);
-      return { valid: false, message: validator.message };
+      // שלב 4️⃣ – עצירה אם הבדיקה נכשלה
+      if (!passed) {
+        console.warn(`❌ [runValidators] כשל בוולידטור: '${validator.type}' – ${validator.message}`);
+        return { valid: false, message: validator.message };
+      }
     }
-  }
 
-  // שלב 5️⃣ – הצלחה
-  console.log("✅ [runValidators] כל הולידטורים עברו בהצלחה");
-  return { valid: true, message: null };
+    // שלב 5️⃣ – אם עבר את כל הבדיקות
+    console.log("✅ [runValidators] הערך עבר את כל הולידטורים בהצלחה");
+    return { valid: true, message: null };
+
+  } catch (error) {
+    console.error("❌ [runValidators] שגיאה בלתי צפויה בהרצת ולידציה:", error);
+    return { valid: false, message: "שגיאה לא צפויה בבדיקת שדה" };
+  }
 }
 
 /**
  * 🧠 פונקציה: updateFieldUI
  *
- * 🎯 מטרת הפונקציה:
- * לעדכן את תצוגת השגיאה בשדה בהתאם לתוצאת הולידציה – הצגת הודעה במקרה של כשל או הסרתה במקרה של הצלחה.
- * כעת עושה שימוש מלא בפונקציות showFieldError / clearFieldError לשמירה על עיצוב אחיד.
+ * 🎯 מטרה:
+ * לעדכן את תצוגת השגיאה של שדה בהתאם לתוצאת הולידציה:
+ * להציג הודעה במקרה של כשל, או להסיר הודעה במקרה של הצלחה.
  *
  * 📌 שלבי פעולה:
- * 1️⃣ בדיקה אם התוצאה אינה תקינה
- * 2️⃣ קריאה ל־showFieldError להצגת שגיאה
- * 3️⃣ אחרת – קריאה ל־clearFieldError
- * 4️⃣ לוגים תואמים לתוצאה
+ * 1️⃣ קבלת תוצאת הולידציה, אלמנט השדה, ואלמנט השגיאה.
+ * 2️⃣ אם התוצאה אינה תקינה – הצגת הודעת שגיאה.
+ * 3️⃣ אם התוצאה תקינה – הסרת כל הודעת שגיאה קיימת.
+ * 4️⃣ לוגים בהתאם לתוצאה.
  *
- * @param {Object} result - תוצאה מפונקציית runValidators (מבנה: { valid, message })
- * @param {HTMLElement} field - אלמנט הקלט (input)
- * @param {HTMLElement} errorContainer - אלמנט המציג את הודעת השגיאה
+ * @param {Object} result - תוצאת הולידציה (מבנה: { valid: boolean, message: string|null })
+ * @param {HTMLElement} field - אלמנט השדה ב־DOM (input / select / textarea)
+ * @param {HTMLElement} errorContainer - אלמנט DOM שמיועד להציג שגיאה
  */
 function updateFieldUI(result, field, errorContainer) {
-  console.log("🎨 [updateFieldUI] ▶ עדכון תצוגת שדה");
+  console.log(`🎨 [updateFieldUI] ▶ התחלת עדכון תצוגת שדה '${field.id}'`);
 
-  // שלב 1️⃣ – בדיקה האם יש שגיאה
-  if (!result.valid) {
-    console.warn(`⚠️ [updateFieldUI] שגיאה בשדה '${field.id}': ${result.message}`);
-    showFieldError(field.id, result.message);
-  } else {
-    clearFieldError(field.id);
-    console.log(`✅ [updateFieldUI] שדה '${field.id}' תקין – אין שגיאה`);
+  try {
+    // שלב 1️⃣ – בדיקה אם יש כשל בוולידציה
+    if (!result.valid) {
+      console.warn(`⚠️ [updateFieldUI] שדה '${field.id}' לא תקין – מציג הודעת שגיאה: ${result.message}`);
+      showFieldError(field.id, result.message);
+    } else {
+      // שלב 2️⃣ – במקרה של הצלחה – הסרת הודעות שגיאה
+      clearFieldError(field.id);
+      console.log(`✅ [updateFieldUI] שדה '${field.id}' תקין – הודעת שגיאה הוסרה`);
+    }
+  } catch (error) {
+    console.error(`❌ [updateFieldUI] שגיאה בעדכון UI לשדה '${field.id}':`, error);
   }
 }
 
+/**
+ * 🧠 פונקציה: validateRequiredFieldsAndToggleSubmitButton
+ *
+ * 🎯 מטרה:
+ * לבדוק האם כל שדות החובה מולאו, ולהפעיל את כפתור האישור אם כן.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ טעינת מפת השדות.
+ * 2️⃣ סינון שדות חובה בלבד.
+ * 3️⃣ בדיקה אם כל שדה חובה מולא.
+ * 4️⃣ הפעלת או השבתת כפתור האישור.
+ */
+function validateRequiredFieldsAndToggleSubmitButton() {
+  console.log("🔎 [validateRequiredFieldsAndToggleSubmitButton] ▶ התחלת בדיקת שדות חובה");
+
+  try {
+    const flatFields = FORM_CONTEXT.flatFields;
+    if (!flatFields || typeof flatFields !== "object") {
+      console.error("❌ [1️⃣] flatFields לא קיים או לא תקין בקונטקסט");
+      return;
+    }
+
+    const requiredFields = Object.entries(flatFields).filter(
+      ([_, def]) => def.required === true
+    );
+
+    console.log(`📋 [2️⃣] נמצאו ${requiredFields.length} שדות חובה לבדיקה`);
+
+    const allRequiredValid = requiredFields.every(([fieldId, _]) => {
+      const el = document.getElementById(fieldId);
+      if (!el) {
+        console.warn(`⚠️ [3️⃣] שדה '${fieldId}' לא נמצא ב־DOM`);
+        return true; // דילוג על שדות שלא קיימים
+      }
+      const value = el.value?.trim() ?? "";
+      const isValid = value !== "";
+      console.log(`🔍 [3️⃣] שדה '${fieldId}': ${isValid ? "✔️ מלא" : "❌ ריק"}`);
+      return isValid;
+    });
+
+    const submitButton = document.getElementById("submitButton");
+    if (submitButton) {
+      submitButton.disabled = !allRequiredValid;
+      console.log(`🔁 [4️⃣] כפתור אישור ${allRequiredValid ? "הופעל" : "הושבת"}`);
+    } else {
+      console.warn("⚠️ [4️⃣] כפתור 'submitButton' לא נמצא ב־DOM");
+    }
+
+  } catch (error) {
+    console.error("❌ [validateRequiredFieldsAndToggleSubmitButton] שגיאה:", error);
+  }
+}
+/**
+ * 🧠 פונקציה: temporarilyDisableSubmitButton
+ *
+ * 🎯 מטרה:
+ * להשבית זמנית את כפתור השליחה (Submit) כאשר מתבצע שינוי בשדה חובה,
+ * עד אשר יושלם מילוי תקין ויאושר בבדיקה כללית.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ איתור כפתור האישור לפי מזהה.
+ * 2️⃣ השבתת הכפתור (disabled = true).
+ * 3️⃣ הדפסת לוג לפעולה.
+ */
+function temporarilyDisableSubmitButton() {
+  console.log("🚫 [temporarilyDisableSubmitButton] ▶ התחלת השבתת כפתור אישור זמנית");
+
+  try {
+    const submitButton = document.getElementById("submitButton");
+    if (!submitButton) {
+      console.warn("⚠️ [temporarilyDisableSubmitButton] כפתור Submit לא נמצא ב־DOM");
+      return;
+    }
+
+    submitButton.disabled = true;
+    console.log("✅ [temporarilyDisableSubmitButton] כפתור Submit הושבת בהצלחה");
+
+  } catch (error) {
+    console.error("❌ [temporarilyDisableSubmitButton] שגיאה בהשבתת כפתור:", error);
+  }
+}
+/**
+ * 🧠 פונקציה: scrollFieldIntoView
+ *
+ * 🎯 מטרה:
+ * לגלול שדה לפוקוס רק אם הוא מחוץ לטווח הגלוי של קונטיינר הטופס (form-container),
+ * ולמקם אותו באופן נעים בעין – מבלי לפגוע בראש הטופס או לגרום לקפיצות.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ בדיקה שהאלמנט קיים ותקין.
+ * 2️⃣ איתור קונטיינר הטופס (form-container).
+ * 3️⃣ חישוב גבולות ויזואליים של השדה ביחס לקונטיינר.
+ * 4️⃣ בדיקה אם השדה נמצא מעל או מתחת לגבולות הגלויים.
+ * 5️⃣ גלילה רק אם נדרש, כולל מרחק בטוח מלמעלה.
+ *
+ * @param {HTMLElement} element - שדה שנכנס לפוקוס
+ */
+function scrollFieldIntoView(element) {
+  console.log("🌀 [scrollFieldIntoView] ▶ התחלת גלילה חכמה לשדה");
+
+  // שלב 1️⃣ – בדיקה ראשונית
+  if (!element) {
+    console.warn("⚠️ [1️⃣] אלמנט לא סופק לפונקציה – אין מה לגלול");
+    return;
+  }
+
+  // שלב 2️⃣ – איתור קונטיינר
+  const container = document.getElementById("form-container");
+  if (!container) {
+    console.error("❌ [2️⃣] קונטיינר form-container לא נמצא ב־DOM");
+    return;
+  }
+
+  // שלב 3️⃣ – חישוב גבולות
+  const elementRect = element.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+
+  const elementTopInView = elementRect.top >= containerRect.top;
+  const elementBottomInView = elementRect.bottom <= containerRect.bottom;
+
+  console.log(`🔍 [3️⃣] שדה '${element.id}' בתוך הטווח?`, elementTopInView && elementBottomInView);
+
+  // שלב 4️⃣ – רק אם השדה מחוץ לטווח
+  if (!elementTopInView || !elementBottomInView) {
+    const offsetTop = elementRect.top - containerRect.top + container.scrollTop;
+
+    console.log(`🌀 [4️⃣] מבצע גלילה לשדה '${element.id}' (offsetTop=${offsetTop})`);
+
+    // שלב 5️⃣ – גלילה עם מרווח נעים מלמעלה
+    container.scrollTo({
+      top: offsetTop - 80,
+      behavior: "smooth"
+    });
+  } else {
+    console.log(`✅ [4️⃣] השדה '${element.id}' כבר בטווח הנראה – לא נדרשת גלילה`);
+  }
+}
+/**
+ * 🧠 פונקציה: scrollToTop
+ *
+ * 🎯 מטרה:
+ * מבצעת גלילה חלקה לתחילת הטופס בתוך הקונטיינר הראשי.
+ * מאפשרת למשתמש לחזור במהירות לראש המסמך.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ איתור קונטיינר הטופס לפי מזהה (form-container).
+ * 2️⃣ בדיקה האם הקונטיינר קיים.
+ * 3️⃣ ביצוע גלילה ל־scrollTop=0 עם התנהגות חלקה.
+ * 4️⃣ רישום לוגים לאורך הפעולה.
+ */
+function scrollToTop() {
+  console.log("🔼 [scrollToTop] ▶ התחלת גלילה לראש הטופס");
+
+  // שלב 1️⃣ – איתור הקונטיינר
+  const container = document.getElementById("form-container");
+
+  // שלב 2️⃣ – בדיקת קיום
+  if (!container) {
+    console.error("❌ [scrollToTop] קונטיינר 'form-container' לא נמצא");
+    return;
+  }
+
+  // שלב 3️⃣ – ביצוע הגלילה
+  container.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+
+  // שלב 4️⃣ – לוג סיום
+  console.log("✅ [scrollToTop] גלילה לראש הושלמה בהצלחה");
+}
+/**
+ * 🧠 פונקציה: scrollToBottom
+ *
+ * 🎯 מטרה:
+ * מבצעת גלילה חלקה לתחתית קונטיינר הטופס (form-container).
+ * נועדה להוביל את המשתמש לכפתורי סיום כמו "אישור" ו-"ביטול".
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ איתור הקונטיינר לפי מזהה.
+ * 2️⃣ בדיקה האם הקונטיינר קיים.
+ * 3️⃣ חישוב ערך scrollTop מרבי.
+ * 4️⃣ גלילה לתחתית בהתנהגות חלקה.
+ * 5️⃣ רישום לוגים לאורך הדרך.
+ */
+function scrollToBottom() {
+  console.log("🔽 [scrollToBottom] ▶ התחלת גלילה לתחתית הטופס");
+
+  // שלב 1️⃣ – איתור הקונטיינר
+  const container = document.getElementById("form-container");
+
+  // שלב 2️⃣ – בדיקה שהקונטיינר קיים
+  if (!container) {
+    console.error("❌ [scrollToBottom] קונטיינר 'form-container' לא נמצא");
+    return;
+  }
+
+  // שלב 3️⃣ – חישוב נקודת גלילה
+  const maxScrollTop = container.scrollHeight - container.clientHeight;
+  console.log(`📏 [scrollToBottom] גובה גלילה מרבי: ${maxScrollTop}`);
+
+  // שלב 4️⃣ – ביצוע גלילה חלקה
+  container.scrollTo({
+    top: maxScrollTop,
+    behavior: "smooth"
+  });
+
+  // שלב 5️⃣ – לוג סיום
+  console.log("✅ [scrollToBottom] גלילה לתחתית הושלמה בהצלחה");
+}
+/**
+ * 🧠 פונקציה: monitorScrollPosition
+ *
+ * 🎯 מטרה:
+ * לעקוב אחרי מצב הגלילה בקונטיינר הטופס,
+ * ולעדכן את זמינות כפתורי הגלילה (למעלה / למטה) בהתאם.
+ *
+ * 📌 שלבי פעולה:
+ * 1️⃣ איתור האלמנטים הנדרשים
+ * 2️⃣ הגדרת לוגיקה לבדיקת מיקום הגלילה
+ * 3️⃣ הצמדה לאירוע גלילה
+ * 4️⃣ בדיקה מיידית גם לאחר טעינה
+ */
+function monitorScrollPosition() {
+  console.log("🧭 [monitorScrollPosition] ▶ התחלת ניטור מצב גלילה");
+
+  // שלב 1️⃣ – איתור אלמנטים
+  const container = document.getElementById("form-container");
+  const upBtn = document.getElementById("scrollUpBtn");
+  const downBtn = document.getElementById("scrollDownBtn");
+
+  if (!container || !upBtn || !downBtn) {
+    console.error("❌ [monitorScrollPosition] קונטיינר או כפתורים לא נמצאו ב־DOM");
+    return;
+  }
+
+  // שלב 2️⃣ – פונקציה פנימית לבדיקת מצב גלילה
+  const updateScrollButtons = () => {
+    const scrollTop = container.scrollTop;
+    const maxScrollTop = container.scrollHeight - container.clientHeight;
+
+    const isAtTop = scrollTop <= 5;
+    const isAtBottom = scrollTop >= maxScrollTop - 5;
+
+    console.log(`📏 [monitorScrollPosition] scrollTop=${scrollTop}, max=${maxScrollTop}`);
+    console.log(`🔍 מצב: isAtTop=${isAtTop}, isAtBottom=${isAtBottom}`);
+
+    upBtn.disabled = isAtTop;
+    downBtn.disabled = isAtBottom;
+
+    console.log(`🔁 עדכון כפתורים: ⬆ upBtn.disabled=${upBtn.disabled}, ⬇ downBtn.disabled=${downBtn.disabled}`);
+  };
+
+  // שלב 3️⃣ – האזנה לאירוע scroll
+  container.addEventListener("scroll", updateScrollButtons);
+
+  // שלב 4️⃣ – בדיקה מיידית לאחר הטעינה (למקרה שכבר גולל)
+  setTimeout(updateScrollButtons, 100); // השהייה קצרה כדי להבטיח render
+
+  console.log("✅ [monitorScrollPosition] ניטור גלילה הופעל");
+}

@@ -1,71 +1,87 @@
 /**
- * פונקציה 001: handleFormData
- * 
- * 📦 מטרה:
- * טעינת נתונים שהתקבלו מהשרת אל תוך טופס דינאמי מסוג "לקוח חדש".
- * תומכת באכלוס שדות, שמירת נתוני מערכת, וטעינת מקורות מידע לרשימות.
- * הולידציה מבוססת סכמה בלבד – ללא חיבורים ידניים.
- * 
- * 📌 שלבי פעולה:
- * 1️⃣ בדיקה שהאובייקט שהתקבל מהשרת קיים ותקין.
- * 2️⃣ בדיקת שלמות הנתונים (validateNewCustomerFormData).
- * 3️⃣ מילוי שדות מערכתיים (תאריך, מזהים וכו').
- * 4️⃣ טעינת רשימת לקוחות לתוך FORM_CONTEXT לצורך ולידציה ייחודיות.
- * 5️⃣ טעינת מקבלי עמלות ל־FORM_CONTEXT והפעלת סלקט.
- * 6️⃣ חיבור הולידציה דינאמית לשדות מתוך הסכמה – לאחר טעינת נתונים.
- * 7️⃣ הסרת שכבת טעינה.
- * 8️⃣ טיפול בשגיאות כלליות.
- * 
- * @param {Object} data - אובייקט הנתונים שהתקבל מ־Google Apps Script
+ * 🧠 פונקציה: handleFormData
+ *
+ * 🎯 מטרה:
+ * עיבוד נתונים שהתקבלו מהשרת והזרמתם אל תוך טופס דינאמי.
+ * כולל מילוי שדות מערכתיים, טעינת מקורות נתונים, חיבור הולידציה, הסרת שכבת טעינה והגדרת focus אוטומטי.
+ *
+ * 📦 תומך בסכמה גנרית לכל סוגי הטפסים, מותאם למודל עבודה מבוסס FORM_CONTEXT.
+ *
+ * 📌 שלבים:
+ * 1️⃣ בדיקת תקינות בסיסית של הנתונים.
+ * 2️⃣ ולידציה של שלמות הנתונים (validateNewCustomerFormData).
+ * 3️⃣ מילוי שדות מערכתיים אוטומטיים.
+ * 4️⃣ טעינת רשימות לקוחות קיימים ל־FORM_CONTEXT.
+ * 5️⃣ טעינת מקבלי עמלות ל־FORM_CONTEXT.
+ * 6️⃣ טעינת סכמת שדות והצמדת הולידציות.
+ * 7️⃣ סיום – הסרת שכבת טעינה והגדרת focus אוטומטי.
+ * 8️⃣ טיפול בשגיאות כלליות במקרה של כשל.
+ *
+ * @param {Object} data - אובייקט הנתונים שהתקבל מהשרת (Google Apps Script)
  */
 function handleFormData(data) {
   console.log("📡 [handleFormData] ▶ התחלת עיבוד נתונים מהשרת...");
 
   try {
-    // שלב 1️⃣ – בדיקת תקינות הנתונים
+    // שלב 1️⃣ – בדיקת תקינות בסיסית
     if (!data || typeof data !== "object") {
-      console.error("❌ [handleFormData] אובייקט הנתונים לא תקין או ריק:", data);
+      console.error("❌ [1️⃣] אובייקט הנתונים לא תקין או ריק:", data);
       updateLoadingOverlayText("❌ שגיאה בטעינת הנתונים – נסה לרענן את הדף.");
       return;
     }
+    console.log("✅ [1️⃣] אובייקט הנתונים עבר בדיקת תקינות ראשונית");
 
     // שלב 2️⃣ – ולידציה של שלמות הנתונים
     const allDataReady = validateNewCustomerFormData(data);
     if (!allDataReady) {
-      console.warn("⚠️ [handleFormData] ולידציה נכשלה – נתונים חסרים או לא תקינים.");
+      console.warn("⚠️ [2️⃣] ולידציה נכשלה – נתונים חסרים או לא תקינים.");
       updateLoadingOverlayText("⚠️ הנתונים אינם שלמים – לא ניתן להמשיך.");
       return;
     }
+    console.log("✅ [2️⃣] הנתונים עברו ולידציה כללית");
 
     // שלב 3️⃣ – מילוי שדות מערכתיים
-    console.log("🧩 [handleFormData] מילוי שדות מערכתיים...");
+    console.log("🧩 [3️⃣] מילוי שדות מערכתיים...");
     fillSystemFields(data.generatedFields);
+    console.log("✅ [3️⃣] שדות מערכתיים מולאו");
 
-    // שלב 4️⃣ – טעינת רשימת לקוחות
-    console.log("📋 [handleFormData] טעינת רשימת לקוחות...");
+    // שלב 4️⃣ – טעינת רשימת לקוחות קיימים
+    console.log("📋 [4️⃣] טעינת רשימת לקוחות...");
     populateCustomerList(data.existingCustomers);
+    console.log("✅ [4️⃣] רשימת לקוחות נטענה בהצלחה");
 
     // שלב 5️⃣ – טעינת מקבלי עמלות
-    console.log("💸 [handleFormData] טעינת מקבלי עמלות...");
+    console.log("💸 [5️⃣] טעינת מקבלי עמלות...");
     FORM_CONTEXT.dataSources.commissionRecipients = data.commissionRecipients || [];
     initializeCommissionSelector();
+    console.log("✅ [5️⃣] מקבלי עמלות הוזנו בהצלחה");
 
-    // שלב 6️⃣ – חיבור הולידציה מתוך הסכמה (רק אחרי טעינת נתונים)
+    // שלב 6️⃣ – טעינת סכמה והצמדת הולידציות
+    console.log("🧠 [6️⃣] טעינת סכמת טופס...");
     const schema = loadSchemaFromDOM("schema-dynamic");
     if (schema) {
       const flatSchema = flattenSchemaToFields(schema);
       attachValidatorsFromSchema(flatSchema);
+      FORM_CONTEXT.flatFields = flatSchema;
+      console.log("✅ [6️⃣] סכמה נטענה והולידציות חוברו");
+
+      // שלב 7️⃣ – סיום: הסרת שכבת טעינה + פוקוס
+      hideLoadingOverlay();
+      console.log("✅ [7️⃣] שכבת טעינה הוסרה");
+
+      focusFirstEditableField();
+      console.log("✅ [7️⃣] focus הוגדר בשדה הראשון המתאים");
+
     } else {
-      console.warn("⚠️ [handleFormData] לא ניתן לטעון סכמה ל־attachValidatorsFromSchema");
+      console.warn("⚠️ [6️⃣] לא ניתן לטעון סכמה - סיום טעינה בכל זאת");
+      hideLoadingOverlay();
     }
 
-    // שלב 7️⃣ – סיום
-    hideLoadingOverlay();
-    console.log("✅ [handleFormData] הנתונים נקלטו והטופס מוכן לשימוש.");
+    console.log("🏁 [handleFormData] סיום מלא של תהליך טעינת הטופס.");
 
   } catch (error) {
-    // שלב 8️⃣ – טיפול בשגיאות כלליות
-    console.error("❌ [handleFormData] שגיאה כללית בעת עיבוד הנתונים:", error);
+    // שלב 8️⃣ – טיפול בשגיאה כללית
+    console.error("❌ [8️⃣] שגיאה בלתי צפויה בעת עיבוד הנתונים:", error);
     updateLoadingOverlayText("❌ שגיאה כללית – נסה לרענן את הדף.");
   }
 }

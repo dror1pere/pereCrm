@@ -19,6 +19,7 @@
       <?!= include("כללי - הודעות בראש הטופס") ?>
       <?!= include("כללי - הודעות לשדה בטופס") ?>
       <?!= include("ניהול נתוני הטופס - קונטקסט + תקינות") ?>
+      <?!= include("כללי - קוד לניהול לחיצה על כפתורים") ?>
       <?!= include("לקוח חדש - טעינת נתונים") ?>
     </script>
   </head>
@@ -32,34 +33,73 @@
     <?!= include("קומפוננטות כפתורים") ?>
 
     <!-- 🚀 הפעלת בניית הטופס + טעינת נתונים מהשרת לפי הסכמה -->
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const schema = loadSchemaFromDOM("schema-dynamic");
+  <script>
+  /**
+   * 🧠 DOMContentLoaded
+   *
+   * 🎯 מטרה:
+   * תהליך אתחול מלא של טופס דינאמי:
+   * כולל טעינת סכמה, בניית קונטקסט (schema + flatFields),
+   * רינדור השדות, טעינת נתונים מהשרת לפי סוג הטופס,
+   * והפעלת ניטור גלילה לשיפור חוויית משתמש.
+   *
+   * 📌 שלבי פעולה:
+   * 1️⃣ טעינת הסכמה מתוך תגית JSON.
+   * 2️⃣ המרת הסכמה למבנה שטוח ושמירתה בקונטקסט.
+   * 3️⃣ רינדור הטופס לתוך ה־DOM.
+   * 4️⃣ שמירת סוג הטופס והפעלת טעינת נתונים לפי סוג.
+   * 5️⃣ הפעלת ניטור גלילה ועדכון כפתורי הגלילה.
+   * 6️⃣ טיפול בשגיאות כלליות.
+   */
 
-        if (!schema) {
-          showGlobalErrorMessage("❌ לא ניתן לטעון את הסכמה.");
-          return;
-        }
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("🚀 [DOMContentLoaded] ▶ התחלת תהליך טעינת טופס");
 
-        renderForm(schema, "form-body");
+    try {
+      // שלב 1️⃣ – טעינת הסכמה מתוך תגית <script id="schema-dynamic">
+      FORM_CONTEXT.schema = loadSchemaFromDOM("schema-dynamic");
+      if (!FORM_CONTEXT.schema) {
+        console.error("❌ [1️⃣] לא ניתן לטעון את הסכמה מה־DOM");
+        showGlobalErrorMessage("❌ לא ניתן לטעון את הסכמה.");
+        return;
+      }
+      console.log("✅ [1️⃣] סכמה נטענה בהצלחה:", FORM_CONTEXT.schema.title);
 
-        // 🧠 טעינת נתונים מהשרת לפי שם הסכמה
-        if (schema.title === "פתיחת לקוח חדש") {
-          console.log("📡 טעינת נתונים מהשרת לטופס: לקוח חדש");
+      // שלב 2️⃣ – המרת הסכמה למבנה שטוח ושמירה בקונטקסט
+      FORM_CONTEXT.flatFields = flattenSchemaToFields(FORM_CONTEXT.schema);
+      console.log("✅ [2️⃣] סכמת שדות שוטחה ונשמרה בקונטקסט");
 
-          // ⏳ הצגת overlay מקצועי עם טקסט דינאמי
-          updateLoadingOverlayText("⏳ טוען נתונים מהשרת...");
-          showLoadingOverlay();
+      // שלב 3️⃣ – רינדור הטופס לפי הסכמה
+      renderForm(FORM_CONTEXT.schema, "form-body");
+      console.log("✅ [3️⃣] רינדור הטופס בוצע");
 
-          // 📡 קריאה לשרת
-          google.script.run
-            .withSuccessHandler(handleFormData)
-            .processCustomerForm();
-        }
+      // שלב 4️⃣ – שמירת סוג הטופס בקונטקסט והפעלת טעינת נתונים לפי צורך
+      FORM_CONTEXT.formType = FORM_CONTEXT.schema.title;
+      console.log(`ℹ️ [4️⃣] סוג הטופס הנוכחי: "${FORM_CONTEXT.formType}"`);
 
-        // בעתיד: ניתן להוסיף else if לטפסים נוספים
-      });
-    </script>
+      if (FORM_CONTEXT.formType === "פתיחת לקוח חדש") {
+        console.log("📡 [4️⃣.1] טעינת נתונים מהשרת לטופס 'לקוח חדש'");
+
+        updateLoadingOverlayText("⏳ טוען נתונים מהשרת...");
+        showLoadingOverlay();
+
+        google.script.run
+          .withSuccessHandler(handleFormData)
+          .processCustomerForm();
+      }
+
+      // שלב 5️⃣ – ניטור גלילה ועדכון כפתורי גלילה
+      monitorScrollPosition();
+      console.log("✅ [5️⃣] ניטור גלילה הופעל");
+
+    } catch (error) {
+      // שלב 6️⃣ – טיפול בשגיאות כלליות
+      console.error("❌ [DOMContentLoaded] שגיאה כללית במהלך טעינת הטופס:", error);
+      showGlobalErrorMessage("❌ שגיאה בלתי צפויה בעת טעינת הטופס.");
+    }
+  });
+</script>
+
 
   </body>
 </html>

@@ -1,30 +1,36 @@
-<!-- ✅ שלד טופס בסיסי עם שכבת טעינה -->
+<!-- ✅ שלד טופס בסיסי – כפתור גלילה מחוץ לקונטיינר, מותאם עיצובית -->
+<div id="form-wrapper" class="form-wrapper">
 
-<div class="form-container">
+  <!-- 🎯 קונטיינר טופס עם גלילה פנימית -->
+  <div id="form-container" class="form-container">
 
-  <!-- ⏳ שכבת טעינה חצי שקופה מעל הטופס -->
-  <div id="loadingOverlay" class="loading-overlay">
-    <div class="loading-content">
-      ⏳ טוען נתונים... אנא המתן
-      <span class="spinner"></span>
+    <!-- ⏳ שכבת טעינה חצי שקופה מעל הטופס -->
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="loading-content">
+        ⏳ טוען נתונים... אנא המתן
+        <span class="spinner"></span>
+      </div>
     </div>
-  </div>
 
-  <!-- 🏷️ כותרת -->
-  <h1 class="main-form-heading">פרא - מערכת לניהול לקוחות</h1>
+    <!-- 🏷️ כותרת -->
+    <h1 class="main-form-heading">פרא - מערכת לניהול לקוחות</h1>
 
-  <!-- 🚨 הודעת שגיאה כללית -->
-  <div id="formErrorMessage" class="error-message-global" style="display: none;"></div>
+    <!-- 🚨 הודעת שגיאה כללית -->
+    <div id="formErrorMessage" class="error-message-global" style="display: none;"></div>
 
-  <!-- 🧩 כותרת טופס דינמית -->
-  <h2 id="form-title">...</h2>
+    <!-- 🧩 כותרת טופס דינמית -->
+    <h2 id="form-title">...</h2>
 
-  <!-- 🎯 יעד לרינדור שדות -->
-  <div id="form-body"></div>
+    <!-- 🎯 יעד לרינדור שדות -->
+    <div id="form-body"></div>
 
-  <!-- 🔽 כפתור גלילה בתוך הטופס -->
-  <div class="scroll-to-submit-wrapper">
-    <button id="scrollToBottomBtn" type="button" onclick="scrollToSubmit()">⬇ עבור לכפתורי אישור</button>
-  </div>
+  </div> <!-- סגירת form-container -->
 
+  <!-- 🔽🔼 שני כפתורי גלילה – בתוך אותו wrapper -->
+<div class="scroll-to-submit-wrapper">
+  <button id="scrollUpBtn" type="button" onclick="scrollToTop()">⬆ לראש הטופס</button>
+  <button id="scrollDownBtn" type="button" onclick="scrollToBottom()">⬇ לכפתור שליחה</button>
 </div>
+
+
+</div> <!-- סגירת form-wrapper -->

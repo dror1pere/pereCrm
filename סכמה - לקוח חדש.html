@@ -18,6 +18,7 @@
           "type": "text",
           "label": "שם לקוח",
           "required": true,
+          "focusOnLoad": true,
           "validators": [
             { "type": "unique", "list": "customerList", "message": "שם הלקוח כבר קיים במערכת" }
           ]
@@ -142,7 +143,8 @@
       "type": "button-custom",
       "label": "אישור",
       "class": "btn btn-submit",
-      "onclick": "scrollToTopBeforeSubmit()"
+      "onclick": "handleSubmitButtonClick()",
+      "disabled": true
     }
   ]
   }

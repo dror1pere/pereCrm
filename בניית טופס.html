@@ -50,53 +50,60 @@ function renderField(field) {
 }
 
 /**
- * פונקציה 012: renderButton
- * רינדור כפתור HTML על בסיס תבנית מוגדרת מראש.
+ * 🧠 פונקציה: renderButton
  *
- * 📌 שלבי פעולה:
- * 1️⃣ בניית מזהה תבנית (template ID) לפי סוג הכפתור.
+ * 🎯 מטרה:
+ * רינדור כפתור HTML על בסיס תבנית `<script type="text/template">` מה־DOM,
+ * כאשר כל מזהי התבנית מוחלפים בפרמטרים שהתקבלו מתוך אובייקט `button`.
+ *
+ * 📌 שלבים:
+ * 1️⃣ קביעת מזהה תבנית לפי סוג הכפתור.
  * 2️⃣ טעינת תבנית מתאימה מה־DOM.
- * 3️⃣ החלפת מזהים בתוך ה־template (id, label, class, onclick).
- * 4️⃣ החזרת HTML גולמי או מחרוזת ריקה במקרה של שגיאה.
+ * 3️⃣ החלפת מזהים בתבנית: id, label, class, onclick, disabled.
+ * 4️⃣ החזרת HTML סופי או מחרוזת ריקה במקרה של שגיאה.
  *
- * 🛑 נדרשת נוכחות של template עם id מתאים: template-button-<type>
+ * 🛑 נדרשת נוכחות של template עם id: template-button-<type> או template-button-custom
  *
  * @param {Object} button - אובייקט הגדרת כפתור
  * @param {string} button.id - מזהה ייחודי של הכפתור
  * @param {string} button.label - טקסט שיוצג בכפתור
  * @param {string} button.type - סוג הכפתור ("submit", "cancel", "button-custom")
  * @param {string} [button.class] - מחלקת CSS (רלוונטי ל־custom)
- * @param {string} [button.onclick] - פונקציית onclick (רלוונטי ל־custom)
- * @returns {string} HTML מוכן להצבה או מחרוזת ריקה אם נכשל
+ * @param {string} [button.onclick] - שם פונקציית onclick (רלוונטי ל־custom)
+ * @param {boolean} [button.disabled] - האם הכפתור ייווצר במצב מושבת
+ * @returns {string} - HTML מוכן להצבה או מחרוזת ריקה אם רינדור נכשל
  */
 function renderButton(button) {
   console.log(`[renderButton] ▶ התחלה: סוג=${button.type}, id=${button.id}`);
 
   try {
-    // 1️⃣ קביעת מזהה תבנית לפי סוג
+    // שלב 1️⃣ – קביעת מזהה תבנית לפי סוג הכפתור
     let templateId = `template-button-${button.type}`;
     if (button.type === "button-custom") {
       templateId = "template-button-custom";
     }
 
-    // 2️⃣ איתור תבנית מתאימה
+    // שלב 2️⃣ – טעינת תבנית מה־DOM
     const template = document.getElementById(templateId);
     if (!template) {
-      console.warn(`[renderButton] ⚠️ תבנית לא נמצאה עבור סוג הכפתור: '${button.type}'`);
+      console.warn(`[renderButton] ⚠️ תבנית לא נמצאה עבור סוג: '${button.type}'`);
       return "";
     }
 
-    // 3️⃣ החלפת מזהים בתוך התבנית
+    // שלב 3️⃣ – החלפת מזהים בתבנית
     let html = template.innerHTML
       .replace(/{{id}}/g, button.id)
       .replace(/{{label}}/g, button.label || "");
 
+    // שלב 3️⃣.1 – החלפות רלוונטיות ל־button-custom בלבד
     if (button.type === "button-custom") {
       html = html
         .replace(/{{class}}/g, button.class || "btn")
-        .replace(/{{onclick}}/g, button.onclick || "");
+        .replace(/{{onclick}}/g, button.onclick || "")
+        .replace(/{{disabled}}/g, button.disabled === true ? "disabled" : "");
     }
 
+    // שלב 4️⃣ – החזרת ה־HTML שנוצר
     console.log(`[renderButton] ✅ כפתור '${button.id}' נוצר בהצלחה`);
     return html;
 
@@ -105,6 +112,7 @@ function renderButton(button) {
     return "";
   }
 }
+
 
 /**
  * 🚀 פונקציה 001: renderForm
@@ -278,5 +286,53 @@ function updateLoadingOverlayText(message) {
     }
   } catch (error) {
     console.error("❌ [updateLoadingOverlayText] שגיאה בעדכון טקסט overlay:", error);
+  }
+}
+/**
+ * 🧠 פונקציה: focusFirstEditableField
+ *
+ * 🎯 מטרה:
+ * לאחר רינדור וטעינת נתונים, ממקדת את הסמן בשדה אחד בלבד:
+ * 1️⃣ אם קיים שדה שהוגדר לו `focusOnLoad: true` בסכמה – הוא יקבל את ה־focus.
+ * 2️⃣ אחרת – השדה הראשון הפתוח (input/select/textarea) יקבל focus.
+ *
+ * 📌 שלבים:
+ * 1️⃣ מעבר על flatFields וחיפוש שדה עם focusOnLoad.
+ * 2️⃣ אם נמצא – הפעלת focus עליו.
+ * 3️⃣ אחרת – מעבר על DOM וחיפוש שדה פתוח ראשון.
+ */
+function focusFirstEditableField() {
+  console.log("🔎 [focusFirstEditableField] ▶ התחלת חיפוש שדה למיקוד");
+
+  try {
+    // שלב 1️⃣ – ניסיון למצוא שדה עם focusOnLoad=true
+    const fields = FORM_CONTEXT.flatFields;
+    for (const [fieldId, fieldDef] of Object.entries(fields)) {
+      if (fieldDef.focusOnLoad === true) {
+        const el = document.getElementById(fieldId);
+        if (el && !el.disabled && !el.readOnly) {
+          el.focus();
+          console.log(`✅ [focusFirstEditableField] focus לפי focusOnLoad: ${fieldId}`);
+          return;
+        }
+      }
+    }
+
+    // שלב 2️⃣ – fallback: חיפוש שדה פתוח ראשון ב־DOM
+    console.log("ℹ️ [focusFirstEditableField] לא נמצא שדה עם focusOnLoad – חיפוש שדה פתוח ראשון");
+
+    const allInputs = document.querySelectorAll("input, select, textarea");
+    for (const el of allInputs) {
+      if (!el.disabled && !el.readOnly) {
+        el.focus();
+        console.log(`✅ [focusFirstEditableField] focus עבר לשדה ראשון פתוח: ${el.id}`);
+        return;
+      }
+    }
+
+    console.warn("⚠️ [focusFirstEditableField] לא נמצא שדה פתוח לעריכה");
+
+  } catch (error) {
+    console.error("❌ [focusFirstEditableField] שגיאה במהלך חיפוש focus:", error);
   }
 }
